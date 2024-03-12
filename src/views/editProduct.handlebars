@@ -1,0 +1,52 @@
+<div class="header">
+    <a href="/profile" class="profile-btn">
+        {{#if user.avatar}}
+            <img src="{{user.avatar}}" alt="Perfil" class="profile-img">
+        {{else}}
+            <img src="/img/default.jpg" alt="">
+        {{/if}}
+        Perfil
+    </a>
+    
+    <a href="javascript:history.back()" class="back-btn">
+        <ion-icon name="arrow-back-outline"></ion-icon> Volver
+    </a>
+
+    <a href="/api/sessions/logout" id="logout-btn">
+        <ion-icon name="log-out-outline"></ion-icon> Cerrar sesión
+    </a>
+</div>
+
+<main>
+    <h1>Editar Producto: {{product.name}}</h1>
+    <form action="/products/{{product._id}}" method="POST">
+        <label for="name">Nombre:</label>
+        <input type="text" id="name" name="name" value="{{product.name}}" required>
+        
+        <label for="description">Descripción:</label>
+        <textarea id="description" name="description">{{product.description}}</textarea>
+        
+        <label for="price">Precio:</label>
+        <input type="number" id="price" name="price" value="{{product.price}}" required>
+        
+        <label for="code">Código:</label>
+        <input type="text" id="code" name="code" value="{{product.code}}" required>
+        
+        <label for="stock">Stock:</label>
+        <input type="number" id="stock" name="stock" value="{{product.stock}}" required>
+        
+        <label for="category">Categoría:</label>
+        <select id="category" name="category" required>
+            {{#each categories}}
+                <option value="{{this._id}}">{{this.nameCategory}}</option>
+            {{/each}}
+        </select>
+        
+        <label for="thumbnails">Imágenes:</label>
+        <!-- Agrega la lógica necesaria para manejar múltiples imágenes -->
+        
+        <button type="submit">Guardar Cambios</button>
+    </form>
+</main>
+
+<script src="/js/editProduct.js"></script>

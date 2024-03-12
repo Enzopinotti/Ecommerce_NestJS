@@ -1,0 +1,151 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    
+}
+
+body{
+    background-color: rgb(86, 89, 87);
+}
+
+
+.tituloHome{
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    background-color: rgba(222, 222, 222, 0.479);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+
+}
+.realTimeProducts {
+    margin-top: 1rem;
+    list-style: none;
+    margin-left: 4rem;
+    margin-right: 4rem;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(300px, 1fr)); /* Define columnas automáticas con tamaño mínimo de 250px */
+    gap: 20px; /* Espacio entre elementos */
+}
+
+.realTimeProducts li {
+    background-color: rgba(222, 222, 222, 0.479);
+    border: 3px solid #ddd;
+    border-radius: 20px;
+    padding: 10px;
+    margin: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 25rem;
+    height: 30rem;
+    padding: 2rem;
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    -ms-border-radius: 20px;
+    -o-border-radius: 20px;
+}
+
+.botonDelete{
+    margin-top: 0.5rem;
+    background-color: rgb(185, 16, 16);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.realTimeProducts li h2 {
+    font-size: 1.5rem;
+    margin: 10px 0;
+}
+
+.realTimeProducts li p {
+    font-size: 1rem;
+    margin: 5px 0;
+}
+
+
+
+/* Estilos para el formulario en realTimeProducts.handlebars */
+.formulario {
+    
+    border: 3px solid #ddd;
+    border-radius: 20px;
+    padding: 20px;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto;
+    align-content: center;
+    
+}
+
+.formulario input[type="text"],
+.formulario input[type="number"] {
+    width: 50%;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.formulario button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.formulario button:hover {
+    background-color: #45a049;
+}
+
+.formulario label {
+    font-size: 1rem;
+    margin: 5px 0;
+}
+
+.imgProduct{
+    width: 100%;
+    aspect-ratio: 3/2;
+    object-fit: contain;
+}
+
+.contenedorArchivos{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+    margin-top: 0.5rem;
+    background-color: rgb(255, 255, 255);
+    width: 50%;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    padding: 1rem;
+}
+
+.contenedorArchivos input {
+    background-color: rgba(86, 89, 87, 0.449);;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+
+}

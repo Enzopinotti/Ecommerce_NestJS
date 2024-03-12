@@ -1,0 +1,16 @@
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 contenedor-formulario">
+            
+            <h2 class="title">Restablecer Contraseña</h2>
+            <form id="ResetPasswordForm" action="/api/sessions/resetPassword" method="post" class="formulario" enctype="multipart/form-data">
+                <input type="password" name="password" placeholder="Nueva Contraseña" class="input-password" />
+                <h5 style="color: rgb(209, 99, 99);">La contraseña debe tener al menos una minúscula, una mayúscula, un número y tener una longitud de al menos 6 caracteres.</h5>
+                <input type="password" name="confirmPassword" placeholder="Confirmar Nueva Contraseña" class="input-password" />
+                <input type="hidden" name="token" value="{{tokenId}}" />
+                <button class="resetButton">Restablecer Contraseña</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="/js/resetPass.js"></script>

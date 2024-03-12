@@ -1,0 +1,71 @@
+<!-- partial:index.partial.html -->
+<div class="contenedorRegister">
+    
+    <h1>Bienvenido/a, Ingrese sus datos para registrarse 👽</h1>
+    <section class="inputs">
+        <form id="registerForm" action="/api/sessions/register" method="post">
+        
+            <div class="name">
+            <label for="first_name">Nombre/s</label>
+            <div class="sec-2">
+                <ion-icon name="person-outline"></ion-icon>
+                <input type="text" name="first_name" placeholder="Daniel"/>
+            </div>
+            </div>
+            <div class="name">
+                <label for="last_name">Apellido/s</label>
+                <div class="sec-2">
+                    <ion-icon name="person-outline"></ion-icon>
+                    <input type="text" name="last_name" placeholder="Rodriguez"/>
+                </div>
+            </div>
+
+            <div class="email">
+                <label for="email">Correo Electronico</label>
+                <div class="sec-2">
+                    <ion-icon name="mail-outline"></ion-icon>
+                    <input type="email" name="email" placeholder="Username@gmail.com"/>
+                </div>
+            </div>
+            <div class="password">
+
+                <label for="password">Password</label>
+
+                <div class="sec-2">
+                    <ion-icon name="lock-closed-outline"></ion-icon>
+                    <input class="pas" type="password" name="password" placeholder="············"/>
+                </div>
+                <h5 style="color: rgb(209, 99, 99);">La contraseña debe tener al menos una minúscula, una mayúscula, un número y tener una longitud de al menos 6 caracteres.</h5>
+
+            </div>
+
+            <div class="birthdate">
+                <label for="birthDate">Fecha de Nacimiento</label>
+                
+                <div class="sec-2">
+                    <ion-icon name="calendar-outline"></ion-icon>
+                    <input class="birthdate-input" type="date" name="birthDate" placeholder="Fecha de Nacimiento"/>
+                </div>
+
+            </div>
+
+            <div class="phone">
+                <label for="phone">Teléfono</label>
+                <div class="sec-2">
+                    <ion-icon name="call-outline"></ion-icon>
+                    <input type="tel" name="phone" placeholder="Número de teléfono"/>
+                </div>
+            </div>
+            <button class="register" type="submit">Registrarse </button>
+        </form>
+        
+    </section>
+    
+
+    
+
+    <a href="/login"><button>Iniciar Sesión</button></a>
+</div>
+
+<script src="/js/register.js"></script>
+

@@ -1,0 +1,33 @@
+
+<section class="chat-container">
+
+    <article class="message-container">
+
+        <div id="chat-messages">
+
+        {{#each messages}}
+
+            <p class="message"> <strong>{{user}} :</strong> {{message}}  </p>
+            <hr>
+        {{/each}}
+
+        </div>
+
+        <!-- Agrega un formulario para enviar nuevos mensajes -->
+        <form id="message-form" action="/message" method="post">
+
+            <input type="text" id="user" placeholder="Tu nombre de usuario..." name="user">
+
+            <input type="text" id="message" placeholder="Escribe tu mensaje" name="message">
+
+            <button type="submit"> Enviar </button>
+            
+        </form>
+
+    </article>
+
+    
+
+</section>
+
+<script src="/js/message.js"></script>

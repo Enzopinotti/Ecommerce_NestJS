@@ -1,0 +1,56 @@
+<div class="header">
+    <a href="/profile" class="profile-btn">
+        <ion-icon name="person-circle-outline"></ion-icon> Perfil
+    </a>
+    <a href="javascript:history.back()" class="back-btn"><ion-icon name="arrow-back-outline"></ion-icon> Volver </a>
+    {{#if user}}
+        <div class="user-info">
+            <h1 class="cart-title">Carrito de Compras de {{user.name}}</h1>
+        </div>
+    {{/if}}
+    <a href="/api/sessions/logout" id="logout-btn">
+        <ion-icon name="log-out-outline"></ion-icon> Cerrar sesión
+    </a>
+</div>
+
+{{#if cart}}
+    <ul class="cart-list">
+        {{#each cart.products}}
+            <!-- Accede al cart._id utilizando lookup -->
+            <li class="cart-item" data-cart-id="{{lookup ../cart '_id'}}" data-product-id="{{this.product._id}}">
+                <section>
+                    <img src="img/{{this.product.thumbnails}}" alt="{{name}}" class="product-img">
+                </section>
+                <section>
+                    <h2 class="product-name">{{this.product.name}}</h2>
+                    <p class="product-description">{{this.product.description}}</p>
+                    <p class="product-price">Precio: ${{this.product.price}}</p>
+                    <p class="product-quantity">Cantidad: {{this.quantity}}</p>
+                </section>
+                <form class="remove-from-cart-form">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <!-- Usa el atributo data-cart-id directamente -->
+                    <button type="button" class="remove-from-cart-btn" data-cart-id="{{lookup ../cart '_id'}}" data-product-id="{{this.product._id}}">Eliminar del carrito</button>
+                </form>
+            </li>
+        {{/each}}
+        
+    </ul>
+    <div class="delete_buttom">
+        <button type="button" class="remove-all-from-cart-btn" data-cart-id="{{cart._id}}">Eliminar todo del carrito</button>
+    </div>
+    
+    <div id="cart-summary" class="cart-summary">
+        <p class="total-items">Total de productos: {{cart.products.length}}</p>
+        <p class="total-price">Total a pagar: ${{calculateTotalPrice}}</p>
+    </div>
+    
+    <div class="checkout-container">
+        <a href="/api/carts/{{cart._id}}/purchase" class="checkout-btn">Finalizar Compra</a>  
+    </div>
+      
+{{else}}
+    <p class="empty-cart">Tu carrito está vacío.</p>
+{{/if}}
+
+<script src="/js/cart.js"></script>

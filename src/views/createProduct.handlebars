@@ -1,0 +1,23 @@
+<h1 class="tituloHome">Crear Nuevo Producto</h1>
+
+<form class="formulario" id="addProductForm" action="/products/create" method="post" enctype="multipart/form-data">
+    <input type="text" id="productName" name="productName" placeholder="Nombre del producto">
+    <input type="text" id="productDescription" name="productDescription" placeholder="Descripción del producto">
+    <input type="number" id="productPrice" name="productPrice" placeholder="Precio">
+    <input type="text" id="productCode" name="productCode" placeholder="Código del producto">
+    <input type="number" id="productStock" name="productStock" placeholder="Stock">
+    <select id="productCategory" name="productCategory">
+        <!-- A continuación, generas las opciones basadas en tus categorías existentes -->
+        {{#each categories}}
+            <option value="{{_id}}">{{nameCategory}}</option>
+        {{/each}}
+    </select>
+    <!-- Campo de entrada para cargar la imagen -->
+    <div class="contenedorArchivos">
+        <label for="productImage">Cargar Imagen del Producto</label>
+        <input type="file" id="productImage" name="productImage">
+    </div>
+    <button type="submit" id="addProductButton">Agregar Producto</button>
+</form>
+
+<script src="/js/createProduct.js"></script>

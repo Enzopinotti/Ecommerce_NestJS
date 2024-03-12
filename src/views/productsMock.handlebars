@@ -1,0 +1,25 @@
+<div class="header">
+    <a href="/login" class="profile-btn">
+        Volver al login
+    </a>
+    <h1 class="tittle_header">Lista de Productos Mockeados</h1>
+</div>
+
+<ul class="products-list">
+    {{#each products}}
+        <li class="product-item">
+            <h2 class="product-name">{{this.name}}</h2>
+            <p class="product-description">{{this.description}}</p>
+            <p class="product-price"> <strong>Precio: </strong> ${{this.price}}</p>
+            <p class="product-stock"><strong>Stock: </strong>  {{this.stock}} unidades</p>
+            <p class="product-category"><strong>Categoría: </strong>  {{this.category}}</p>
+            <img src="{{this.thumbnails.[0]}}" alt="{{name}}" class="product-img">
+            <!-- Botón "Ver Detalles" -->
+            <a href="/products/{{this._id}}" class="details-btn">Ver Detalles</a>
+            <form action="/api/carts/current/product/{{this._id}}" method="POST" class="add-to-cart-form" onsubmit="addToCart(event, '{{this._id}}')">
+                <input type="hidden" name="productId" value="{{this._id}}">
+                <button type="submit" class="add-to-cart-btn">Agregar al carrito</button>
+            </form>
+        </li>
+    {{/each}}
+</ul>

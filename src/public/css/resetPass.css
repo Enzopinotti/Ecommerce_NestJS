@@ -1,0 +1,80 @@
+body {
+    background: #f1f7fe;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10rem;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+    width: 60%;
+}
+
+.contenedor-formulario {
+    width: 100%;
+    background: #ffffff;
+    padding: 2em;
+    border-radius: 1.9rem;
+}
+
+.contenedor-formulario .title {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.formulario {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-email,
+.input-password {
+    background: white;
+    box-shadow: 0 0 2em #e6e9f9;
+    padding: 1em;
+    border-radius: 20px;
+    color: #4d4d4d;
+    margin-bottom: 1rem;
+    outline: none;
+    border: none;
+}
+
+.resetButton {
+    padding: 1em;
+    background: #3e4684;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 50%;
+    align-self: center;
+}
+
+a {
+    display: flex;
+    justify-content: center;
+    font-size: 0.7em;
+    color: #5e5e5e;
+    text-decoration: none;
+}
+
+a button {
+    padding: 1em;
+    background: #55aa69;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 50%;
+    margin-top: 1rem;
+}
+
+button {
+    cursor: pointer;
+}

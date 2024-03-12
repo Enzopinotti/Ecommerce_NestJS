@@ -1,0 +1,41 @@
+<header>
+
+
+    <h1>Perfil de Usuario</h1>
+
+    <a href="javascript:history.back()" class="back-btn"><ion-icon name="arrow-back-outline"></ion-icon> Volver </a>
+
+    
+
+</header>
+
+<main>
+    <section class="avatar-section">
+        {{#if user.avatar}}
+            <img src="{{ user.avatar }}" alt="Avatar">
+        {{else}}
+            <img src="/img/default.jpg" alt="Avatar por defecto">
+        {{/if}}
+        <div>
+            <h2>Información de Perfil</h2>
+            <p><strong>Nombre:</strong> {{ user.name }} {{ user.lastName }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Rol:</strong> {{ user.rol }}</p>
+        </div>
+        <!-- Formulario para cargar el avatar -->
+        <form action="/upload-avatar" method="POST" enctype="multipart/form-data">
+            <div class="file-input-wrapper">
+                <input type="file" id="avatar" name="avatar" accept="image/*">
+                <label for="avatar" class="file-input-label">Seleccionar Imagen</label>
+            </div>
+            <button type="submit">Subir Avatar</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Detalles del Perfil</h2>
+        <p><strong>Fecha de Nacimiento:</strong> {{ birthDateFormated }}</p>
+        <p><strong>Teléfono:</strong> {{ user.phone }}</p>
+    </section>
+
+</main>

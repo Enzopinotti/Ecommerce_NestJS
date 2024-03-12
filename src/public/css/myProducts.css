@@ -1,0 +1,147 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: rgb(86, 89, 87);
+    display: flex;
+    flex-direction: column;
+}
+
+main{
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    align-items: center;
+}
+
+.header {
+    display: flex;
+    margin-bottom: 2rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    background-color: rgba(222, 222, 222, 0.479);
+    justify-content: space-between;
+}
+
+.header a {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    color: black;
+    font-size: medium;
+    background-color: rgba(222, 222, 222, 0.479);
+    padding: 0.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    border-radius: 1rem;
+    margin-right: 1rem;
+    height: 4rem;
+}
+
+.create-btn{
+    text-decoration: none;
+    margin-top: 0.5rem;
+    background-color: rgb(16, 185, 69);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 1.5rem;
+}
+.header .profile-btn {
+    display: flex;
+    align-items: center;
+    color: black;
+    font-size: medium;
+    background-color: rgba(222, 222, 222, 0.479);
+    padding: 0.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    border-radius: 1rem;
+    margin-left: 3rem;
+    height: 4rem;
+}
+
+.header .profile-btn img {
+    border-radius: 50%;
+    width: 40px;
+    height: 37px;
+    margin-right: 1rem;
+    opacity: 0.7;
+}
+
+.header a ion-icon {
+    margin-right: 0.2rem;
+}
+
+.no-products{
+    display: flex;
+    justify-self: center;
+    align-self: center;
+}
+.products-list {
+    list-style: none;
+    margin-left: 4rem;
+    margin-right: 4rem;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.products-list li {
+    background-color: rgba(222, 222, 222, 0.479);
+    border: 3px solid #ddd;
+    border-radius: 20px;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: center;
+    height: 32rem;
+}
+
+.product-img {
+    width: 100%;
+    aspect-ratio: 3/2;
+    object-fit: contain;
+    margin-bottom: 2rem;
+}
+
+.products-list li h2 {
+    font-size: 1.5rem;
+    margin: 10px 0;
+}
+
+.products-list li p {
+    font-size: 1rem;
+    margin: 5px 0;
+}
+
+.add-to-cart-btn {
+    margin-top: 0.5rem;
+    background-color: rgb(16, 185, 69);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 1.5rem;
+}
+
+.products-list li a {
+    margin-top: 0.5rem;
+    background-color: rgb(145, 185, 16);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    text-decoration: none;
+}
+    

@@ -1,0 +1,48 @@
+<div class="header">
+    <a href="/profile" class="profile-btn">
+        {{#if user.avatar}}
+            <img src="{{user.avatar}}" alt="Perfil" class="profile-img">
+        {{else}}
+            <img src="/img/default.jpg" alt="">
+        {{/if}}
+        Perfil
+    </a>
+    
+    <a href="javascript:history.back()" class="back-btn">
+        <ion-icon name="arrow-back-outline"></ion-icon> Volver
+    </a>
+
+    <a href="/api/sessions/logout" id="logout-btn">
+        <ion-icon name="log-out-outline"></ion-icon> Cerrar sesión
+    </a>
+</div>
+<main>
+    <h1>Tus Productos: </h1>
+    <a href="/createProduct" class="create-btn">Crear Producto</a>
+    <ul class="products-list">
+        {{#if products}}
+            {{#each products}}
+                <li class="product-item">
+                    <h2 class="product-name">{{this.name}}</h2>
+                    <p class="product-description">{{this.description}}</p>
+                    <p class="product-price"> <strong>Precio: </strong> ${{this.price}}</p>
+                    <p class="product-stock"><strong>Stock: </strong>  {{this.stock}} unidades</p>
+                    <p class="product-category"><strong>Categoría: </strong>  {{this.category.nameCategory}}</p>
+                    <img src="img/{{thumbnails}}" alt="{{name}}" class="product-img">
+                    <!-- Botón "Ver Detalles" -->
+                    <a href="/products/{{this._id}}" class="details-btn">Ver Detalles</a>
+                    <!-- Agregar botones para editar y eliminar solo si el owner es el usuario actual -->
+
+                    <a href="/products/{{this._id}}/edit" class="edit-btn">Editar</a>
+
+                </li>
+            {{/each}}
+        {{else}}
+            <h3 class="no-products">No hay Productos Para Mostrar</h3>
+        {{/if}}
+    </ul>
+</main>
+
+
+
+<script src="/js/myProducts.js"></script>
