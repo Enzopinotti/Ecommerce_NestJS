@@ -76,15 +76,17 @@ npm run start:prod
 
 B2 packages Handlebars views and public assets into `dist/`; production no longer depends on `src/views` or `src/public` being present beside the compiled application. The runtime also reads its listening port from validated configuration and keeps Handlebars prototype property/method access disabled.
 
-## Authentication contract
+## Authentication and recovery contracts
 
 B3 consolidates authentication under one `AuthModule`, one `AuthService`, one JWT strategy and one guard.
 
-The server-rendered application uses the `access_token` HttpOnly cookie as its only browser-session authority. Bearer-only requests do not authenticate that session. Session JWTs carry an explicit `purpose: "session"`, resolve identity through `sub`, and never validate a password as part of session lookup. Password-reset-purpose or legacy purpose-less JWTs are rejected as sessions.
+The server-rendered application uses the `access_token` HttpOnly cookie as its only browser-session authority. Bearer-only requests do not authenticate that session. Session JWTs carry an explicit `purpose: "session"`, resolve identity through `sub`, and never validate a password as part of session lookup. Non-session-purpose or legacy purpose-less JWTs are rejected as sessions.
 
 Registration creates the account but does not automatically log the browser in. Login creates the hardened cookie; auth JSON responses do not return the JWT. Browser logout is a POST mutation that clears the same cookie and redirects to `/login`, and `/profile` is guarded explicitly instead of relying on a global Passport middleware side effect.
 
-Password-recovery token storage and mail lifecycle are intentionally still historical at this point; B4 owns that work.
+B4 separates password recovery from session JWT authority. Recovery uses a 32-byte opaque random token, stores only its SHA-256 digest plus expiry, returns the same public `202` response for known and unknown emails, builds links from `APP_BASE_URL`, and consumes valid reset state atomically exactly once. Raw reset tokens are not stored in MongoDB and sensitive path/query values are redacted from request logs.
+
+If mail delivery fails, the just-created recovery digest is cleared and the public response remains non-enumerating. Reset validation occurs on the mutation, not while rendering the reset form. The maintained contract also rejects the previous password, enforces the existing password policy and persists the new password as bcrypt.
 
 ## Quality commands
 
@@ -102,15 +104,18 @@ npm run test:e2e
 npm run quality            # blocking static local/CI contract
 npm run test:b2:runtime    # production artifact + runtime contract; requires reachable MongoDB
 npm run test:b3:auth       # auth/session production runtime contract; requires reachable MongoDB
+npm run test:b4:recovery   # password-recovery production runtime contract; requires reachable MongoDB
 ```
 
-`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors, B2 closed at 382 and B3 closed at **182**. The B3 unit ratchet preserves 12 suites with at least 5 passing and at most 7 failing, and 20 tests with at least 13 passing and at most 7 failing.
+`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors, B2 closed at 382, B3 at 182 and B4 at **141**. The B4 unit ratchet preserves 14 suites with at least 10 passing and at most 4 failing, and 33 tests with at least 29 passing and at most 4 failing.
 
 `npm run test:b2:runtime` builds the real production artifact and validates fail-fast configuration, configurable port, global DTO validation, compiled Handlebars views and compiled static assets. In GitHub Actions it runs against an isolated MongoDB service and temporarily hides the source view/static directories so accidental runtime dependencies on `src/` cannot pass unnoticed.
 
 `npm run test:b3:auth` builds the same production artifact and validates the cookie-only JWT authority against an isolated MongoDB service: single-hash registration, 401/409 semantics, secure cookie flags, guarded session/profile identity, POST logout, token-purpose separation and token-free auth responses.
 
-The permanent GitHub Actions workflow also runs full-project typecheck, formatting and the production dependency audit as explicit debt inventories. Their known failures remain visible until dedicated modernization blocks repair them; a green workflow does not mean that historical test, formatting or supply-chain debt has been erased.
+`npm run test:b4:recovery` validates the recovery boundary against isolated MongoDB: non-enumerating public responses, digest-only storage, expiry, atomic single use, password hashing, stale-state cleanup and absence of raw reset tokens or test secrets from application logs.
+
+The permanent GitHub Actions workflow also runs full-project typecheck, formatting and the production dependency audit as explicit debt inventories. Their known failures remain visible until dedicated modernization blocks repair them; a green workflow does not mean that historical e2e, formatting or supply-chain debt has been erased.
 
 Modernization evidence:
 
@@ -118,6 +123,7 @@ Modernization evidence:
 - [`docs/modernization-2026/b1-toolchain-quality.md`](docs/modernization-2026/b1-toolchain-quality.md)
 - [`docs/modernization-2026/b2-config-runtime.md`](docs/modernization-2026/b2-config-runtime.md)
 - [`docs/modernization-2026/b3-auth-authority.md`](docs/modernization-2026/b3-auth-authority.md)
+- [`docs/modernization-2026/b4-recovery-mail.md`](docs/modernization-2026/b4-recovery-mail.md)
 
 ## Portfolio status
 
@@ -132,7 +138,7 @@ The active 2026 maintenance lane focuses on:
 - documenting historical versus maintained behavior;
 - avoiding duplication with the already-modernized Meow Matrix full-stack ecommerce lineage.
 
-B0–B3 established the reproducible runtime, permanent quality gates, production artifact contract and one coherent authentication authority. The next executable block is B4: credentials, password recovery and mail security.
+B0–B4 established the reproducible runtime, permanent quality gates, production artifact contract, one coherent authentication authority and a non-enumerating digest-based password-recovery lifecycle. The next executable block is **B5: API/domain truth and explicit authorization**.
 
 Portfolio coordination: [`Enzopinotti/Enzopinotti#19`](https://github.com/Enzopinotti/Enzopinotti/issues/19)
 

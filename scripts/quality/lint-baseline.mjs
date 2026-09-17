@@ -8,11 +8,10 @@ const eslint = path.join(
   process.platform === 'win32' ? 'eslint.cmd' : 'eslint',
 );
 
-// B0 started at 474 errors, B2 closed at 382 and the final B3 exact-head
-// measurement reached 182 while consolidating auth. Later blocks are not
-// allowed to give those gains back.
+// B0 started at 474 errors, B2 closed at 382, B3 at 182 and B4 at 141.
+// Later blocks are not allowed to give those gains back.
 const baseline = {
-  errors: 182,
+  errors: 141,
   warnings: 0,
 };
 

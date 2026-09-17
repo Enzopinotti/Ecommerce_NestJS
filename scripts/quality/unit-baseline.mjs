@@ -15,13 +15,15 @@ const outputFile = path.join(
   `ecommerce-nestjs-jest-${process.pid}-${Date.now()}.json`,
 );
 
+// B4 leaves only the historical Products/Categories scaffold suites red.
+// Later blocks may improve this baseline but may not regress it.
 const baseline = {
-  maxFailedSuites: 7,
-  minPassedSuites: 5,
-  minTotalSuites: 12,
-  maxFailedTests: 7,
-  minPassedTests: 13,
-  minTotalTests: 20,
+  maxFailedSuites: 4,
+  minPassedSuites: 10,
+  minTotalSuites: 14,
+  maxFailedTests: 4,
+  minPassedTests: 29,
+  minTotalTests: 33,
 };
 
 const result = spawnSync(
@@ -129,6 +131,6 @@ if (result.status === 0) {
   );
 } else {
   console.log(
-    'Known historical unit failures remain, but the B3 baseline did not regress.',
+    'Known Products/Categories historical failures remain, but the B4 baseline did not regress.',
   );
 }
