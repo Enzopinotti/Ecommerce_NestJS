@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { hashPassword } from '../utils/encryption.util';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument } from './schema/users.schema';
 
 @Injectable()
@@ -22,16 +21,12 @@ export class UsersService {
     });
   }
 
-  findAll(_limit?: unknown) {
-    return this.userModel.find();
-  }
-
-  findOne(id: string) {
-    return this.userModel.findById(id);
-  }
-
   findByEmail(email: string) {
-    return this.userModel.findOne({ email });
+    return this.userModel.findOne({ email }).exec();
+  }
+
+  findByEmailForAuthentication(email: string) {
+    return this.userModel.findOne({ email }).select('+password').exec();
   }
 
   findAuthIdentityById(id: string) {
@@ -66,7 +61,7 @@ export class UsersService {
   findPasswordResetCandidate(tokenDigest: string) {
     return this.userModel
       .findOne({ resetPasswordTokenDigest: tokenDigest })
-      .select('password +resetPasswordExpires')
+      .select('+password +resetPasswordExpires')
       .exec();
   }
 
@@ -110,13 +105,5 @@ export class UsersService {
       .exec();
 
     return result.modifiedCount === 1;
-  }
-
-  update(id: string, updateUserDto: UpdateUserDto) {
-    return this.userModel.updateOne({ _id: id }, updateUserDto);
-  }
-
-  remove(id: string) {
-    return this.userModel.deleteOne({ _id: id });
   }
 }

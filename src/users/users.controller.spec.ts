@@ -1,6 +1,5 @@
 import { PasswordRecoveryService } from './password-recovery.service';
 import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
 
 describe('UsersController recovery boundary', () => {
   let controller: UsersController;
@@ -15,7 +14,6 @@ describe('UsersController recovery boundary', () => {
       resetPassword: jest.fn(),
     };
     controller = new UsersController(
-      {} as unknown as UsersService,
       passwordRecoveryService as unknown as PasswordRecoveryService,
     );
   });

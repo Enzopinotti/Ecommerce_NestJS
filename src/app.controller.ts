@@ -19,6 +19,7 @@ import {
   sessionClearCookieOptions,
 } from './auth/session-cookie';
 import { CategoriesService } from './categories/categories.service';
+import { ProductQueryDto } from './products/dto/product-query.dto';
 import { ProductsService } from './products/products.service';
 
 type AuthenticatedRequest = Request & { user: AuthUserView };
@@ -88,18 +89,12 @@ export class AppController {
   @Get('products')
   @Render('products')
   async getProductsView(
-    @Query()
-    options: { page: number; limit: number; sort: string; query: string },
+    @Query() options: ProductQueryDto,
   ): Promise<Record<string, unknown>> {
-    options.page = options.page || 1;
-    options.limit = options.limit || 10;
-    options.sort = options.sort || 'name';
-    options.query = options.query || '';
-
     const categories = await this.categoryService.findAll();
     const categoryMap: Record<string, string> = {};
     categories.forEach((category) => {
-      categoryMap[category._id.toString()] = category.nameCategory;
+      categoryMap[category._id.toString()] = String(category.nameCategory);
     });
 
     const {
@@ -117,17 +112,28 @@ export class AppController {
       hasNextPage,
       hasPrevPage,
       prevLink: hasPrevPage
-        ? `/products?page=${options.page - 1}&limit=${options.limit}`
+        ? this.buildProductsPageLink(options.page - 1, options)
         : null,
       nextLink: hasNextPage
-        ? `/products?page=${options.page + 1}&limit=${options.limit}`
+        ? this.buildProductsPageLink(options.page + 1, options)
         : null,
       totalDocs,
       categoryMap,
       style: 'products.css',
       title: 'Productos',
-      user: null,
     };
+  }
+
+  private buildProductsPageLink(page: number, options: ProductQueryDto): string {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(options.limit),
+      sort: options.sort,
+    });
+    if (options.query) {
+      params.set('query', options.query);
+    }
+    return `/products?${params.toString()}`;
   }
 
   private isProduction(): boolean {

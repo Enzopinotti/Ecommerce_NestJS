@@ -47,7 +47,9 @@ export class AuthService {
   }
 
   async login(loginUserDto: LoginUserDto): Promise<AuthSession> {
-    const user = await this.usersService.findByEmail(loginUserDto.email);
+    const user = await this.usersService.findByEmailForAuthentication(
+      loginUserDto.email,
+    );
     const passwordMatches =
       user !== null &&
       user !== undefined &&

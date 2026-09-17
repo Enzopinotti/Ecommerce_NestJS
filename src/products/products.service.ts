@@ -1,65 +1,72 @@
-import { Injectable } from '@nestjs/common';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import {
+  FilterQuery,
+  PaginateModel,
+  PaginateOptions,
+  PaginateResult,
+} from 'mongoose';
+import { ProductQueryDto } from './dto/product-query.dto';
 import { Product, ProductDocument } from './schema/products.schema';
-import { Model, PaginateModel, PaginateOptions, PaginateResult } from 'mongoose';
-
-
 
 @Injectable()
 export class ProductsService {
-  
   constructor(
-    @InjectModel(Product.name) private readonly productModel: PaginateModel<ProductDocument>,
+    @InjectModel(Product.name)
+    private readonly productModel: PaginateModel<ProductDocument>,
   ) {}
 
-  create(createProductDto: CreateProductDto) {
-    return this.productModel.create(createProductDto);
-  }
-
-  async findAllView(
-    options: { page: number; limit: number; sort: string; query: string },
-  ): Promise<{
-    products: Product[];
+  async findAllView(options: ProductQueryDto): Promise<{
+    products: ProductDocument[];
     totalPages: number;
     hasNextPage: boolean;
     hasPrevPage: boolean;
     totalDocs: number;
   }> {
-    try {
-      const { page, limit, sort, query } = options;
-      const queryOptions = { isVisible: true };
-      const paginateOptions: PaginateOptions = { page, limit, sort };
+    const filter: FilterQuery<ProductDocument> = { isVisible: true };
+    const search = options.query.trim();
 
-      // Realizar la consulta paginada de los productos
-      const paginatedProducts: PaginateResult<ProductDocument> = await this.productModel.paginate(
-        queryOptions,
-        paginateOptions,
-      );
-
-      return {
-        products: paginatedProducts.docs,
-        totalPages: paginatedProducts.totalPages,
-        hasNextPage: paginatedProducts.hasNextPage,
-        hasPrevPage: paginatedProducts.hasPrevPage,
-        totalDocs: paginatedProducts.totalDocs,
+    if (search) {
+      filter.name = {
+        $regex: this.escapeRegularExpression(search),
+        $options: 'i',
       };
-    } catch (error) {
-      console.error("Error en ProductService.findAll:", error);
-      throw error;
     }
+
+    const descending = options.sort.startsWith('-');
+    const sortField = descending ? options.sort.slice(1) : options.sort;
+    const paginateOptions: PaginateOptions = {
+      page: options.page,
+      limit: options.limit,
+      sort: { [sortField]: descending ? -1 : 1 },
+      lean: true,
+    };
+
+    const paginatedProducts: PaginateResult<ProductDocument> =
+      await this.productModel.paginate(filter, paginateOptions);
+
+    return {
+      products: paginatedProducts.docs,
+      totalPages: paginatedProducts.totalPages,
+      hasNextPage: paginatedProducts.hasNextPage,
+      hasPrevPage: paginatedProducts.hasPrevPage,
+      totalDocs: paginatedProducts.totalDocs,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(id: string): Promise<ProductDocument> {
+    const product = await this.productModel
+      .findOne({ _id: id, isVisible: true })
+      .exec();
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  private escapeRegularExpression(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 }

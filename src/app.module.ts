@@ -10,7 +10,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { CartsModule } from './carts/carts.module';
 import { CategoriesModule } from './categories/categories.module';
 import { validateEnvironment } from './config/environment';
 import InfoMiddleware from './middleware/info.middleware';
@@ -41,7 +40,6 @@ import { UsersModule } from './users/users.module';
     }),
     UsersModule,
     ProductsModule,
-    CartsModule,
     CategoriesModule,
     AuthModule,
   ],

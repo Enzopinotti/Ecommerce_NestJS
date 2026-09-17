@@ -18,6 +18,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let usersService: {
     findByEmail: jest.Mock;
+    findByEmailForAuthentication: jest.Mock;
     create: jest.Mock;
   };
   let jwtService: {
@@ -27,6 +28,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     usersService = {
       findByEmail: jest.fn(),
+      findByEmailForAuthentication: jest.fn(),
       create: jest.fn(),
     };
     jwtService = {
@@ -87,7 +89,9 @@ describe('AuthService', () => {
 
   it('returns unauthorized for a bad password', async () => {
     const storedHash = await hashPassword('CorrectPassword123');
-    usersService.findByEmail.mockResolvedValue(userFixture(storedHash));
+    usersService.findByEmailForAuthentication.mockResolvedValue(
+      userFixture(storedHash),
+    );
 
     await expect(
       service.login({
@@ -97,15 +101,20 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
-  it('logs in with the persisted single bcrypt hash and issues a session-purpose JWT', async () => {
+  it('logs in through the explicit password projection and issues a session-purpose JWT', async () => {
     const storedHash = await hashPassword('CorrectPassword123');
-    usersService.findByEmail.mockResolvedValue(userFixture(storedHash));
+    usersService.findByEmailForAuthentication.mockResolvedValue(
+      userFixture(storedHash),
+    );
 
     const result = await service.login({
       email: 'auth@example.test',
       password: 'CorrectPassword123',
     });
 
+    expect(usersService.findByEmailForAuthentication).toHaveBeenCalledWith(
+      'auth@example.test',
+    );
     expect(jwtService.signAsync).toHaveBeenCalledWith({
       email: 'auth@example.test',
       sub: '507f1f77bcf86cd799439011',
@@ -117,7 +126,7 @@ describe('AuthService', () => {
 
   it('does not rewrite infrastructure failures as authentication failures', async () => {
     const databaseFailure = new Error('database unavailable');
-    usersService.findByEmail.mockRejectedValue(databaseFailure);
+    usersService.findByEmailForAuthentication.mockRejectedValue(databaseFailure);
 
     await expect(
       service.login({
