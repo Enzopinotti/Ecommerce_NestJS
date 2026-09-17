@@ -1,23 +1,37 @@
 {
   "name": "ecommerce-pinotti",
   "version": "0.0.1",
-  "description": "",
+  "description": "Academic NestJS ecommerce backend with a documented 2026 modernization track.",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24.20.0 <25",
+    "npm": ">=11.19.0 <12"
+  },
+  "packageManager": "npm@11.19.0",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "typecheck": "tsc --noEmit --incremental false",
+    "format": "npm run format:write",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:write": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "npm run test:unit",
+    "test:unit": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "quality:hygiene": "node scripts/quality/hygiene.mjs",
+    "quality:lint-baseline": "node scripts/quality/lint-baseline.mjs",
+    "quality:unit-baseline": "node scripts/quality/unit-baseline.mjs",
+    "quality": "npm run quality:hygiene && npm run typecheck && npm run build && npm run quality:lint-baseline && npm run quality:unit-baseline && git diff --exit-code"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
