@@ -1,19 +1,22 @@
-import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
-import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
-import { ProductsModule } from './products/products.module';
+import { AuthModule } from './auth/auth.module';
 import { CartsModule } from './carts/carts.module';
 import { CategoriesModule } from './categories/categories.module';
-import { AuthModule } from './auth/auth.module';
+import { validateEnvironment } from './config/environment';
 import InfoMiddleware from './middleware/info.middleware';
 import { LoggerMiddleware } from './middleware/logger.middleware';
-import { PassportMiddleware } from './middleware/passport.middleware';
-import { validateEnvironment } from './config/environment';
+import { ProductsModule } from './products/products.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -22,8 +25,8 @@ import { validateEnvironment } from './config/environment';
       cache: true,
       validate: validateEnvironment,
     }),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
+      global: true,
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('JWT_KEY'),
@@ -51,8 +54,5 @@ export class AppModule implements NestModule {
       .apply(InfoMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
     consumer.apply(LoggerMiddleware).forRoutes('*');
-    consumer
-      .apply(PassportMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
