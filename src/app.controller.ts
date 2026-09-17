@@ -3,6 +3,7 @@ import {
   Get,
   Logger,
   Param,
+  Post,
   Query,
   Redirect,
   Render,
@@ -53,7 +54,7 @@ export class AppController {
     return { title: 'Register', style: 'register.css' };
   }
 
-  @Get('logout')
+  @Post('logout')
   logoutUser(@Res() response: Response) {
     response.clearCookie(
       SESSION_COOKIE_NAME,
@@ -84,7 +85,9 @@ export class AppController {
   async getResetPassView(@Param('tokenId') id: string) {
     const user = await this.userService.findByToken(id);
     if (!user) {
-      this.logger.debug('No se encontró ningún usuario con el token proporcionado.');
+      this.logger.debug(
+        'No se encontró ningún usuario con el token proporcionado.',
+      );
     }
     return {
       title: 'Reset Password',
@@ -98,14 +101,14 @@ export class AppController {
   async getProductsView(
     @Query()
     options: { page: number; limit: number; sort: string; query: string },
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     options.page = options.page || 1;
     options.limit = options.limit || 10;
     options.sort = options.sort || 'name';
     options.query = options.query || '';
 
     const categories = await this.categoryService.findAll();
-    const categoryMap = {};
+    const categoryMap: Record<string, string> = {};
     categories.forEach((category) => {
       categoryMap[category._id.toString()] = category.nameCategory;
     });

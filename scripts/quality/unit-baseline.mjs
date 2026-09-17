@@ -16,11 +16,12 @@ const outputFile = path.join(
 );
 
 const baseline = {
-  maxFailedSuites: 10,
-  minPassedSuites: 2,
+  maxFailedSuites: 7,
+  minPassedSuites: 5,
   minTotalSuites: 12,
-  minPassedTests: 2,
-  minTotalTests: 7,
+  maxFailedTests: 7,
+  minPassedTests: 13,
+  minTotalTests: 20,
 };
 
 const result = spawnSync(
@@ -65,12 +66,24 @@ const actual = {
 };
 
 console.log('Unit-test debt ratchet');
-console.log(`failed_suites=${actual.failedSuites} baseline_max=${baseline.maxFailedSuites}`);
-console.log(`passed_suites=${actual.passedSuites} baseline_min=${baseline.minPassedSuites}`);
-console.log(`total_suites=${actual.totalSuites} baseline_min=${baseline.minTotalSuites}`);
-console.log(`failed_tests=${actual.failedTests}`);
-console.log(`passed_tests=${actual.passedTests} baseline_min=${baseline.minPassedTests}`);
-console.log(`total_tests=${actual.totalTests} baseline_min=${baseline.minTotalTests}`);
+console.log(
+  `failed_suites=${actual.failedSuites} baseline_max=${baseline.maxFailedSuites}`,
+);
+console.log(
+  `passed_suites=${actual.passedSuites} baseline_min=${baseline.minPassedSuites}`,
+);
+console.log(
+  `total_suites=${actual.totalSuites} baseline_min=${baseline.minTotalSuites}`,
+);
+console.log(
+  `failed_tests=${actual.failedTests} baseline_max=${baseline.maxFailedTests}`,
+);
+console.log(
+  `passed_tests=${actual.passedTests} baseline_min=${baseline.minPassedTests}`,
+);
+console.log(
+  `total_tests=${actual.totalTests} baseline_min=${baseline.minTotalTests}`,
+);
 
 const regressions = [];
 if (actual.failedSuites > baseline.maxFailedSuites) {
@@ -86,6 +99,11 @@ if (actual.passedSuites < baseline.minPassedSuites) {
 if (actual.totalSuites < baseline.minTotalSuites) {
   regressions.push(
     `total suites dropped below baseline min ${baseline.minTotalSuites} to ${actual.totalSuites}`,
+  );
+}
+if (actual.failedTests > baseline.maxFailedTests) {
+  regressions.push(
+    `failed tests increased from baseline max ${baseline.maxFailedTests} to ${actual.failedTests}`,
   );
 }
 if (actual.passedTests < baseline.minPassedTests) {
@@ -106,7 +124,11 @@ if (regressions.length > 0) {
 }
 
 if (result.status === 0) {
-  console.log('Historical unit suite is fully green; the ratchet can be tightened to a normal test gate.');
+  console.log(
+    'Historical unit suite is fully green; the ratchet can be tightened to a normal test gate.',
+  );
 } else {
-  console.log('Known historical unit failures remain, but the B0 baseline did not regress.');
+  console.log(
+    'Known historical unit failures remain, but the B3 baseline did not regress.',
+  );
 }

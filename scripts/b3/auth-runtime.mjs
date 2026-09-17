@@ -132,6 +132,14 @@ function assertSessionCookieContract(setCookieHeader) {
   assert.match(setCookieHeader, /Max-Age=3600/i);
 }
 
+function assertClearedCookie(setCookieHeader) {
+  assert.match(setCookieHeader, /^access_token=;/);
+  assert.match(setCookieHeader, /HttpOnly/i);
+  assert.match(setCookieHeader, /Secure/i);
+  assert.match(setCookieHeader, /SameSite=Lax/i);
+  assert.match(setCookieHeader, /Path=\//i);
+}
+
 function assertPublicAuthBody(body) {
   const serialized = JSON.stringify(body);
   assert.equal('token' in body, false);
@@ -194,6 +202,11 @@ async function main() {
     const anonymousSession = await fetch(`${baseUrl}/auth/session`);
     assert.equal(anonymousSession.status, 401);
 
+    const anonymousProfile = await fetch(`${baseUrl}/profile`, {
+      redirect: 'manual',
+    });
+    assert.equal(anonymousProfile.status, 401);
+
     const registerResponse = await postJson(
       `${baseUrl}/users/register`,
       registration,
@@ -216,6 +229,12 @@ async function main() {
       registration,
     );
     assert.equal(duplicateRegister.status, 409);
+
+    const invalidEmailLogin = await postJson(`${baseUrl}/users/login`, {
+      email: 'not-an-email',
+      password,
+    });
+    assert.equal(invalidEmailLogin.status, 400);
 
     const wrongPassword = await postJson(`${baseUrl}/users/login`, {
       email,
@@ -256,6 +275,12 @@ async function main() {
     assert.equal(sessionBody.user.email, email);
     assert.equal(sessionBody.user.id, registerBody.user.id);
     assertPublicAuthBody(sessionBody);
+
+    const authenticatedProfile = await fetch(`${baseUrl}/profile`, {
+      headers: { cookie: loginCookie },
+    });
+    assert.equal(authenticatedProfile.status, 200);
+    assert.match(await authenticatedProfile.text(), new RegExp(email));
 
     const bearerOnlySession = await fetch(`${baseUrl}/auth/session`, {
       headers: { authorization: `Bearer ${loginToken}` },
@@ -303,18 +328,21 @@ async function main() {
     });
     assert.equal(malformedCookieSession.status, 401);
 
-    const logoutResponse = await postJson(
-      `${baseUrl}/users/logout`,
+    const getLogout = await fetch(`${baseUrl}/logout`, { redirect: 'manual' });
+    assert.equal(
+      getLogout.status,
+      404,
+      'browser logout must not mutate session state through GET',
+    );
+
+    const browserLogout = await postJson(
+      `${baseUrl}/logout`,
       {},
       { cookie: loginCookie },
     );
-    assert.equal(logoutResponse.status, 200);
-    const logoutSetCookie = getSetCookie(logoutResponse);
-    assert.match(logoutSetCookie, /^access_token=;/);
-    assert.match(logoutSetCookie, /HttpOnly/i);
-    assert.match(logoutSetCookie, /Secure/i);
-    assert.match(logoutSetCookie, /SameSite=Lax/i);
-    assert.match(logoutSetCookie, /Path=\//i);
+    assert.equal(browserLogout.status, 302);
+    assert.equal(browserLogout.headers.get('location'), '/login');
+    assertClearedCookie(getSetCookie(browserLogout));
 
     const legacyLoginRoute = await postJson(`${baseUrl}/users/login`, {
       email,
@@ -330,6 +358,14 @@ async function main() {
     });
     assert.equal(reloggedSession.status, 200);
 
+    const apiLogout = await postJson(
+      `${baseUrl}/users/logout`,
+      {},
+      { cookie: legacyLoginCookie },
+    );
+    assert.equal(apiLogout.status, 200);
+    assertClearedCookie(getSetCookie(apiLogout));
+
     assert.doesNotMatch(application.output(), new RegExp(safeJwtKey, 'g'));
     assert.doesNotMatch(application.output(), new RegExp(safeMongoUri, 'g'));
     assert.doesNotMatch(application.output(), new RegExp(loginToken, 'g'));
@@ -341,9 +377,15 @@ async function main() {
   }
 
   console.log('B3 auth runtime contract passed.');
-  console.log('authority=cookie-only jwt=single-registration identity=sub purpose=session');
-  console.log('register=no-session login=200 invalid=401 duplicate=409 logout=clear-cookie');
-  console.log('responses=no-token persistence=single-bcrypt-hash reset-token=rejected');
+  console.log(
+    'authority=cookie-only jwt=single-registration identity=sub purpose=session',
+  );
+  console.log(
+    'register=no-session login=200 invalid=401 duplicate=409 logout=post-only',
+  );
+  console.log(
+    'responses=no-token persistence=single-bcrypt-hash reset-token=rejected profile=guarded',
+  );
 }
 
 main().catch((error) => {
