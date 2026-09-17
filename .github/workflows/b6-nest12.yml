@@ -84,7 +84,7 @@ jobs:
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           NODE
           npm install
-          npm install --save-dev --save-exact babel-jest@29.7.0 @babel/core@latest @babel/preset-env@latest
+          npm install --save-dev --save-exact babel-jest@29.7.0 @babel/core@7 @babel/preset-env@7
       - name: Reinstall exact Nest 12 graph
         shell: bash
         run: |
