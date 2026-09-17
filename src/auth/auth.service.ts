@@ -19,7 +19,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(createUserDto: CreateUserDto): Promise<AuthSession> {
+  async register(createUserDto: CreateUserDto): Promise<AuthUserView> {
     if (
       !createUserDto.first_name ||
       !createUserDto.last_name ||
@@ -37,7 +37,7 @@ export class AuthService {
 
     try {
       const user = await this.usersService.create(createUserDto);
-      return this.createSession(user);
+      return this.toPublicUser(user);
     } catch (error: unknown) {
       if (this.isDuplicateKeyError(error)) {
         throw new ConflictException('Email already exists');
