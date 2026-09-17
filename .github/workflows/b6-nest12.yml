@@ -56,6 +56,11 @@ jobs:
           Object.assign(pkg.devDependencies, {
             '@nestjs/testing':'12.0.3',
           });
+          pkg.overrides = {
+            ...(pkg.overrides ?? {}),
+            glob: '10.5.0',
+            picomatch: '4.0.4',
+          };
           fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');
           NODE
           npm install
