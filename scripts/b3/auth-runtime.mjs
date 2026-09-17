@@ -199,22 +199,56 @@ async function main() {
       registration,
     );
     assert.equal(registerResponse.status, 201);
+    assert.equal(
+      registerResponse.headers.get('set-cookie'),
+      null,
+      'registration must not create a browser session',
+    );
     const registerBody = await registerResponse.json();
     assert.equal(registerBody.status, 'success');
     assert.equal(registerBody.user.email, email);
     assertPublicAuthBody(registerBody);
 
-    const registerSetCookie = getSetCookie(registerResponse);
-    assertSessionCookieContract(registerSetCookie);
-    const registrationCookie = cookiePair(registerSetCookie);
-    const registrationToken = cookieValue(registerSetCookie);
-    assert.ok(registrationToken.length > 40);
-    assert.doesNotMatch(JSON.stringify(registerBody), new RegExp(registrationToken));
-
     await assertStoredPasswordIsSingleHash(email, password);
 
+    const duplicateRegister = await postJson(
+      `${baseUrl}/users/register`,
+      registration,
+    );
+    assert.equal(duplicateRegister.status, 409);
+
+    const wrongPassword = await postJson(`${baseUrl}/users/login`, {
+      email,
+      password: 'WrongPassword123',
+    });
+    assert.equal(wrongPassword.status, 401);
+    assert.equal(wrongPassword.headers.get('set-cookie'), null);
+
+    const unknownUser = await postJson(`${baseUrl}/users/login`, {
+      email: `missing-${unique}@example.test`,
+      password,
+    });
+    assert.equal(unknownUser.status, 401);
+
+    const loginResponse = await postJson(`${baseUrl}/auth/login`, {
+      email,
+      password,
+    });
+    assert.equal(loginResponse.status, 200);
+    const loginBody = await loginResponse.json();
+    assert.equal(loginBody.status, 'success');
+    assert.equal(loginBody.user.email, email);
+    assertPublicAuthBody(loginBody);
+
+    const loginSetCookie = getSetCookie(loginResponse);
+    assertSessionCookieContract(loginSetCookie);
+    const loginCookie = cookiePair(loginSetCookie);
+    const loginToken = cookieValue(loginSetCookie);
+    assert.ok(loginToken.length > 40);
+    assert.doesNotMatch(JSON.stringify(loginBody), new RegExp(loginToken));
+
     const cookieSession = await fetch(`${baseUrl}/auth/session`, {
-      headers: { cookie: registrationCookie },
+      headers: { cookie: loginCookie },
     });
     assert.equal(cookieSession.status, 200);
     const sessionBody = await cookieSession.json();
@@ -224,7 +258,7 @@ async function main() {
     assertPublicAuthBody(sessionBody);
 
     const bearerOnlySession = await fetch(`${baseUrl}/auth/session`, {
-      headers: { authorization: `Bearer ${registrationToken}` },
+      headers: { authorization: `Bearer ${loginToken}` },
     });
     assert.equal(
       bearerOnlySession.status,
@@ -269,29 +303,10 @@ async function main() {
     });
     assert.equal(malformedCookieSession.status, 401);
 
-    const duplicateRegister = await postJson(
-      `${baseUrl}/users/register`,
-      registration,
-    );
-    assert.equal(duplicateRegister.status, 409);
-
-    const wrongPassword = await postJson(`${baseUrl}/users/login`, {
-      email,
-      password: 'WrongPassword123',
-    });
-    assert.equal(wrongPassword.status, 401);
-    assert.equal(wrongPassword.headers.get('set-cookie'), null);
-
-    const unknownUser = await postJson(`${baseUrl}/users/login`, {
-      email: `missing-${unique}@example.test`,
-      password,
-    });
-    assert.equal(unknownUser.status, 401);
-
     const logoutResponse = await postJson(
       `${baseUrl}/users/logout`,
       {},
-      { cookie: registrationCookie },
+      { cookie: loginCookie },
     );
     assert.equal(logoutResponse.status, 200);
     const logoutSetCookie = getSetCookie(logoutResponse);
@@ -301,27 +316,23 @@ async function main() {
     assert.match(logoutSetCookie, /SameSite=Lax/i);
     assert.match(logoutSetCookie, /Path=\//i);
 
-    const loginResponse = await postJson(`${baseUrl}/auth/login`, {
+    const legacyLoginRoute = await postJson(`${baseUrl}/users/login`, {
       email,
       password,
     });
-    assert.equal(loginResponse.status, 200);
-    const loginBody = await loginResponse.json();
-    assert.equal(loginBody.status, 'success');
-    assert.equal(loginBody.user.email, email);
-    assertPublicAuthBody(loginBody);
-    const loginSetCookie = getSetCookie(loginResponse);
-    assertSessionCookieContract(loginSetCookie);
+    assert.equal(legacyLoginRoute.status, 200);
+    const legacyLoginBody = await legacyLoginRoute.json();
+    assertPublicAuthBody(legacyLoginBody);
+    const legacyLoginCookie = cookiePair(getSetCookie(legacyLoginRoute));
 
-    const loginCookie = cookiePair(loginSetCookie);
     const reloggedSession = await fetch(`${baseUrl}/auth/session`, {
-      headers: { cookie: loginCookie },
+      headers: { cookie: legacyLoginCookie },
     });
     assert.equal(reloggedSession.status, 200);
 
     assert.doesNotMatch(application.output(), new RegExp(safeJwtKey, 'g'));
     assert.doesNotMatch(application.output(), new RegExp(safeMongoUri, 'g'));
-    assert.doesNotMatch(application.output(), new RegExp(registrationToken, 'g'));
+    assert.doesNotMatch(application.output(), new RegExp(loginToken, 'g'));
   } finally {
     if (application.child.exitCode === null) {
       application.child.kill('SIGTERM');
@@ -331,7 +342,7 @@ async function main() {
 
   console.log('B3 auth runtime contract passed.');
   console.log('authority=cookie-only jwt=single-registration identity=sub purpose=session');
-  console.log('register=201 login=200 invalid=401 duplicate=409 logout=clear-cookie');
+  console.log('register=no-session login=200 invalid=401 duplicate=409 logout=clear-cookie');
   console.log('responses=no-token persistence=single-bcrypt-hash reset-token=rejected');
 }
 
