@@ -45,8 +45,71 @@ export class UsersService {
       .exec();
   }
 
-  findByToken(token: string) {
-    return this.userModel.findOne({ resetPasswordToken: token });
+  async setPasswordResetDigest(
+    id: string,
+    tokenDigest: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.userModel
+      .updateOne(
+        { _id: id },
+        {
+          $set: {
+            resetPasswordTokenDigest: tokenDigest,
+            resetPasswordExpires: expiresAt,
+          },
+        },
+      )
+      .exec();
+  }
+
+  findPasswordResetCandidate(tokenDigest: string) {
+    return this.userModel
+      .findOne({ resetPasswordTokenDigest: tokenDigest })
+      .select('password +resetPasswordExpires')
+      .exec();
+  }
+
+  async clearPasswordResetDigest(
+    id: string,
+    tokenDigest: string,
+  ): Promise<void> {
+    await this.userModel
+      .updateOne(
+        { _id: id, resetPasswordTokenDigest: tokenDigest },
+        {
+          $unset: {
+            resetPasswordTokenDigest: 1,
+            resetPasswordExpires: 1,
+          },
+        },
+      )
+      .exec();
+  }
+
+  async consumePasswordReset(
+    id: string,
+    tokenDigest: string,
+    passwordHash: string,
+  ): Promise<boolean> {
+    const result = await this.userModel
+      .updateOne(
+        {
+          _id: id,
+          resetPasswordTokenDigest: tokenDigest,
+          resetPasswordExpires: { $gt: new Date() },
+        },
+        {
+          $set: { password: passwordHash },
+          $unset: {
+            resetPasswordTokenDigest: 1,
+            resetPasswordExpires: 1,
+          },
+        },
+      )
+      .exec();
+
+    return result.modifiedCount === 1;
   }
 
   update(id: string, updateUserDto: UpdateUserDto) {

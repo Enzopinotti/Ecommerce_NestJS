@@ -1,20 +1,48 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { PasswordRecoveryService } from './password-recovery.service';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
-describe('UsersController', () => {
+describe('UsersController recovery boundary', () => {
   let controller: UsersController;
+  let passwordRecoveryService: {
+    requestReset: jest.Mock;
+    resetPassword: jest.Mock;
+  };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [UsersController],
-      providers: [UsersService],
-    }).compile();
-
-    controller = module.get<UsersController>(UsersController);
+  beforeEach(() => {
+    passwordRecoveryService = {
+      requestReset: jest.fn(),
+      resetPassword: jest.fn(),
+    };
+    controller = new UsersController(
+      {} as UsersService,
+      passwordRecoveryService as unknown as PasswordRecoveryService,
+    );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('returns the same generic recovery response after delegating the email', async () => {
+    passwordRecoveryService.requestReset.mockResolvedValue(undefined);
+
+    await expect(
+      controller.recoveryPassword({ email: 'person@example.test' }),
+    ).resolves.toEqual({
+      status: 'accepted',
+      message:
+        'If the account exists, password recovery instructions will be sent.',
+    });
+  });
+
+  it('delegates reset without exposing credential state', async () => {
+    passwordRecoveryService.resetPassword.mockResolvedValue(undefined);
+
+    await expect(
+      controller.resetPassword({
+        token: 'x'.repeat(43),
+        password: 'NewPassword2',
+      }),
+    ).resolves.toEqual({
+      message: 'Password updated successfully',
+      status: 'success',
+    });
   });
 });

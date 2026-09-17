@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Logger,
@@ -11,15 +12,10 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { MailService } from '../mail/mail.service';
-import {
-  comparePasswords,
-  hashPassword,
-  validatePassword,
-} from '../utils/encryption.util';
+import { RecoveryPasswordDto } from './dto/recovery-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PasswordRecoveryService } from './password-recovery.service';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -28,68 +24,23 @@ export class UsersController {
 
   constructor(
     private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
-    private readonly mailService: MailService,
-    private readonly config: ConfigService,
+    private readonly passwordRecoveryService: PasswordRecoveryService,
   ) {}
 
   @Post('recoveryPass')
-  async recoveryPassword(@Body('email') email: string) {
-    const user = await this.usersService.findByEmail(email);
-    if (!user) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-
-    const payload = {
-      email: String(user.email),
-      sub: user._id.toString(),
-      purpose: 'password-reset',
+  @HttpCode(HttpStatus.ACCEPTED)
+  async recoveryPassword(@Body() body: RecoveryPasswordDto) {
+    await this.passwordRecoveryService.requestReset(body.email);
+    return {
+      status: 'accepted',
+      message:
+        'If the account exists, password recovery instructions will be sent.',
     };
-    const token = this.jwtService.sign(payload);
-
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000);
-    await user.save();
-
-    const appBaseUrl = this.config.getOrThrow<string>('APP_BASE_URL');
-    await this.mailService.sendMail(
-      email,
-      'Recuperación de contraseña',
-      `Estimado/a ${user.first_name},\n\nHas solicitado recuperar tu contraseña. Por favor utiliza el siguiente enlace para restablecer tu contraseña: ${appBaseUrl}/resetPassword/${token}`,
-    );
-
-    return { message: 'Recovery email sent successfully', status: 'success' };
   }
 
   @Post('resetPass')
-  async resetPassword(
-    @Body('token') token: string,
-    @Body('password') password: string,
-  ) {
-    const user = await this.usersService.findByToken(token);
-    if (!user) {
-      throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
-    }
-    this.logger.debug(`Usuario encontrado: ${user.email}`);
-    if (user.resetPasswordExpires < new Date()) {
-      throw new HttpException('Token expired', HttpStatus.BAD_REQUEST);
-    }
-    if (await comparePasswords(password, user.password)) {
-      throw new HttpException(
-        'La contraseña no puede ser igual a la anterior.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    if ((await validatePassword(password)) === false) {
-      throw new HttpException(
-        'Formato de contraseña invalido.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    user.password = await hashPassword(password);
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
-    await user.save();
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    await this.passwordRecoveryService.resetPassword(body.token, body.password);
     return { message: 'Password updated successfully', status: 'success' };
   }
 

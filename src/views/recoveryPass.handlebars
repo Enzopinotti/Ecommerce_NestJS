@@ -2,9 +2,9 @@
     <div class="row">
         <div class="col-md-6 contenedor-formulario">
         <h2 class="title">Recuperar Contraseña</h2>
-        <form id="RecoveryForm" action="/api/sessions/recoveryPass" method="post" class="formulario">
-            <input type="email" name="email" placeholder="Email" class="input-email" />
-            <button class="recoveryButtom">Enviar Mail de Recuperación</button>
+        <form id="RecoveryForm" action="/users/recoveryPass" method="post" class="formulario">
+            <input type="email" name="email" placeholder="Email" class="input-email" required />
+            <button class="recoveryButtom">Enviar instrucciones de recuperación</button>
         </form>
         </div>
     </div>

@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Logger,
   Param,
   Post,
   Query,
@@ -21,16 +20,12 @@ import {
 } from './auth/session-cookie';
 import { CategoriesService } from './categories/categories.service';
 import { ProductsService } from './products/products.service';
-import { UsersService } from './users/users.service';
 
 type AuthenticatedRequest = Request & { user: AuthUserView };
 
 @Controller()
 export class AppController {
-  private readonly logger = new Logger(AppController.name);
-
   constructor(
-    private readonly userService: UsersService,
     private readonly productService: ProductsService,
     private readonly categoryService: CategoriesService,
     private readonly config: ConfigService,
@@ -82,17 +77,11 @@ export class AppController {
 
   @Get('resetPassword/:tokenId')
   @Render('resetPass')
-  async getResetPassView(@Param('tokenId') id: string) {
-    const user = await this.userService.findByToken(id);
-    if (!user) {
-      this.logger.debug(
-        'No se encontró ningún usuario con el token proporcionado.',
-      );
-    }
+  getResetPassView(@Param('tokenId') tokenId: string) {
     return {
       title: 'Reset Password',
       style: 'resetPass.css',
-      tokenId: id,
+      tokenId,
     };
   }
 
