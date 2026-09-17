@@ -35,6 +35,8 @@ Artifacts de esa corrida:
 
 Los artifacts tienen retención de 30 días. La documentación y el historial Git son la evidencia durable; los artifacts son evidencia complementaria de ejecución.
 
+La corrida exact-head final se registra al cerrar este documento y debe volver a pasar tanto `quality` como `b2-runtime`; la primera corrida verde anterior se conserva aquí como evidencia histórica de cuándo quedó demostrado el contrato por primera vez.
+
 ## 1. Una sola autoridad de configuración
 
 `ConfigModule.forRoot()` ahora se inicializa una sola vez en `AppModule` y queda global:
@@ -207,14 +209,15 @@ B2 no rediseña todavía el flujo de recuperación. Token en claro, enumeración
 
 ## 10. Quality heredado y ratchet más estricto
 
-La primera corrida B2 mantuvo verde el gate estático de B1 y produjo además una mejora legítima:
+La primera corrida B2 mantuvo verde el gate estático de B1 y midió 383 errores de lint. Durante el cierre del mismo bloque se retiró el `HandlebarsConfigService` ya obsoleto y el HEAD de cierre quedó en:
 
 - lint B0: 474 errores;
-- lint medido en B2: 383 errores;
-- mejora: 91 errores menos;
-- warnings: 0.
+- lint cierre B2: 382 errores;
+- mejora total: 92 errores menos;
+- warnings: 0;
+- fixables medidos en el cierre: 363.
 
-El ratchet se bajó a **383** para impedir que esos 91 errores vuelvan a entrar.
+El ratchet se bajó a **382** para impedir que esos 92 errores vuelvan a entrar. La primera medición de 383 se conserva en el log de implementación; el contrato vigente es el valor menor alcanzado por el cierre.
 
 La suite histórica no fue maquillada:
 
@@ -235,7 +238,7 @@ Continúa el error histórico del e2e en `test/app.e2e-spec.ts` por el import/ca
 
 ### Formato
 
-El inventario pasó de 36 archivos fuera de Prettier en B1 a 33 en la corrida de implementación B2. Sigue siendo deuda no bloqueante y no se ejecutó autofix masivo.
+El inventario pasó de 36 archivos fuera de Prettier en B1 a 33 en la primera corrida de implementación B2 y a **32 en el HEAD de cierre**, después de retirar la configuración Handlebars muerta. Sigue siendo deuda no bloqueante y no se ejecutó autofix masivo.
 
 ### Supply chain
 
