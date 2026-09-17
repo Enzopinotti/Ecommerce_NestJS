@@ -1,0 +1,99 @@
+name: B6 inventory
+
+on:
+  push:
+    branches:
+      - modernize/2026-ts-dependencies
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: b6-inventory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Capture top-level dependency tree
+        shell: bash
+        run: npm ls --depth=0 > b6-top-level.txt 2>&1 || true
+      - name: Capture outdated inventory
+        shell: bash
+        run: |
+          set +e
+          npm outdated --json > b6-outdated.json 2> b6-outdated.stderr
+          code=$?
+          echo "npm-outdated-exit=$code" > b6-outdated-status.txt
+          test "$code" -eq 0 -o "$code" -eq 1
+      - name: Capture production audit
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > b6-audit-production.json
+          code=$?
+          echo "npm-audit-production-exit=$code" > b6-audit-status.txt
+          test "$code" -ge 0
+      - name: Probe full-project typecheck
+        id: full_typecheck
+        continue-on-error: true
+        run: npm run typecheck:all
+      - name: Probe force-consistent casing
+        id: casing
+        continue-on-error: true
+        run: npx tsc -p tsconfig.json --noEmit --incremental false --forceConsistentCasingInFileNames true
+      - name: Probe noImplicitAny
+        id: implicit_any
+        continue-on-error: true
+        run: npx tsc -p tsconfig.json --noEmit --incremental false --noImplicitAny true
+      - name: Probe strictNullChecks
+        id: strict_nulls
+        continue-on-error: true
+        run: npx tsc -p tsconfig.json --noEmit --incremental false --strictNullChecks true
+      - name: Probe strict mode
+        id: strict
+        continue-on-error: true
+        run: npx tsc -p tsconfig.json --noEmit --incremental false --strict true
+      - name: Write inventory summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# B6 dependency and TypeScript inventory"
+            echo "- SHA: \`${GITHUB_SHA}\`"
+            echo "- Node: \`$(node --version)\`"
+            echo "- npm: \`$(npm --version)\`"
+            echo "- full typecheck: \`${{ steps.full_typecheck.outcome }}\`"
+            echo "- forceConsistentCasing: \`${{ steps.casing.outcome }}\`"
+            echo "- noImplicitAny: \`${{ steps.implicit_any.outcome }}\`"
+            echo "- strictNullChecks: \`${{ steps.strict_nulls.outcome }}\`"
+            echo "- strict: \`${{ steps.strict.outcome }}\`"
+          } | tee b6-inventory-summary.md
+          cat b6-inventory-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload B6 inventory evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: b6-inventory-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            b6-top-level.txt
+            b6-outdated.json
+            b6-outdated.stderr
+            b6-outdated-status.txt
+            b6-audit-production.json
+            b6-audit-status.txt
+            b6-inventory-summary.md
