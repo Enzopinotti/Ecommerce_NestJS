@@ -1,14 +1,39 @@
+import { Allow } from 'class-validator';
+
 export class CreateProductDto {
-    name: String;
-    description: String;
-    price: Number;
-    code: String;
-    stock: Number;
-    category: String;
-    thumbnails: Array<String>;
-    status: Boolean;
-    isVisible: Boolean;
-    tags: Array<String>;
-    createdAt: Date;
-    updatedAt: Date;
+  @Allow()
+  name: String;
+
+  @Allow()
+  description: String;
+
+  @Allow()
+  price: Number;
+
+  @Allow()
+  code: String;
+
+  @Allow()
+  stock: Number;
+
+  @Allow()
+  category: String;
+
+  @Allow()
+  thumbnails: Array<String>;
+
+  @Allow()
+  status: Boolean;
+
+  @Allow()
+  isVisible: Boolean;
+
+  @Allow()
+  tags: Array<String>;
+
+  @Allow()
+  createdAt: Date;
+
+  @Allow()
+  updatedAt: Date;
 }
