@@ -62,6 +62,7 @@ describe('AuthService', () => {
     expect(jwtService.signAsync).toHaveBeenCalledWith({
       email: 'auth@example.test',
       sub: '507f1f77bcf86cd799439011',
+      purpose: 'session',
     });
     expect(result).toEqual({
       token: 'signed-session-token',
