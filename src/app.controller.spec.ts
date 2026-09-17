@@ -1,10 +1,13 @@
 import { ConfigService } from '@nestjs/config';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { AppController } from './app.controller';
+import { AuthUserView } from './auth/auth.types';
+import { SESSION_COOKIE_NAME } from './auth/session-cookie';
 import { CategoriesService } from './categories/categories.service';
 import { ProductsService } from './products/products.service';
-import { AppController } from './app.controller';
-import { SESSION_COOKIE_NAME } from './auth/session-cookie';
 import { UsersService } from './users/users.service';
+
+type AuthenticatedRequest = Request & { user: AuthUserView };
 
 describe('AppController auth-facing views', () => {
   let controller: AppController;
@@ -21,21 +24,22 @@ describe('AppController auth-facing views', () => {
 
     controller = new AppController(
       { findByToken: jest.fn() } as unknown as UsersService,
-      {} as ProductsService,
-      {} as CategoriesService,
+      {} as unknown as ProductsService,
+      {} as unknown as CategoriesService,
       { get: jest.fn().mockReturnValue('production') } as unknown as ConfigService,
     );
   });
 
   it('renders only the authenticated identity supplied by the JWT guard', () => {
-    const user = {
+    const user: AuthUserView = {
       id: '507f1f77bcf86cd799439011',
       email: 'auth@example.test',
       first_name: 'Auth',
       last_name: 'User',
     };
+    const request = { user } as unknown as AuthenticatedRequest;
 
-    expect(controller.getProfileView({ user } as never)).toEqual({
+    expect(controller.getProfileView(request)).toEqual({
       title: 'Profile',
       style: 'profile.css',
       user,
