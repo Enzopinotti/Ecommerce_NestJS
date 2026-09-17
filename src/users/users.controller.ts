@@ -10,22 +10,17 @@ import {
   Patch,
   Post,
   Query,
-  Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Response } from 'express';
-import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthService } from './auth/auth.service';
-import { LoginUserDto } from './dto/login-user.dto';
-import { MailService } from 'src/mail/mail.service';
+import { MailService } from '../mail/mail.service';
 import {
   comparePasswords,
   hashPassword,
   validatePassword,
-} from 'src/utils/encryption.util';
+} from '../utils/encryption.util';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UsersService } from './users.service';
 
 @Controller('users')
 export class UsersController {
@@ -33,56 +28,15 @@ export class UsersController {
 
   constructor(
     private readonly usersService: UsersService,
-    private readonly authService: AuthService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
     private readonly config: ConfigService,
   ) {}
 
-  @Post('register')
-  async register(@Body() createUserDto: CreateUserDto) {
-    this.logger.log(`Registrando usuario ${createUserDto.email}`);
-    if (
-      !createUserDto.first_name ||
-      !createUserDto.last_name ||
-      !createUserDto.email ||
-      !createUserDto.password
-    ) {
-      throw new HttpException('Incomplete Values', HttpStatus.BAD_REQUEST);
-    }
-    return this.authService.register(createUserDto);
-  }
-
-  @Post('login')
-  async login(@Body() loginUserDto: LoginUserDto, @Res() res: Response) {
-    try {
-      this.logger.debug('Ingresó a login');
-      const tokenPayload = await this.authService.login(loginUserDto);
-      this.logger.log(`Iniciando sesión de ${loginUserDto.email}`);
-
-      res.cookie('access_token', tokenPayload.access_token, {
-        httpOnly: true,
-        maxAge: 60 * 60 * 1000,
-      });
-      res.status(HttpStatus.OK).json({
-        message: 'Login successful',
-        tokenPayload,
-        status: 'success',
-      });
-    } catch (error) {
-      this.logger.error(`Error al iniciar sesión: ${error.message}`);
-      throw new HttpException(
-        'Error al iniciar sesión',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   @Post('recoveryPass')
   async recoveryPassword(@Body('email') email: string) {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      console.log('entré acá');
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
@@ -109,7 +63,6 @@ export class UsersController {
     @Body('password') password: string,
   ) {
     const user = await this.usersService.findByToken(token);
-    console.log('usuario: ', user);
     if (!user) {
       throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
     }
