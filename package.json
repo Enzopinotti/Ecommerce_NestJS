@@ -12,7 +12,8 @@
   "packageManager": "npm@11.19.0",
   "scripts": {
     "build": "nest build",
-    "typecheck": "tsc --noEmit --incremental false",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit --incremental false",
+    "typecheck:all": "tsc -p tsconfig.json --noEmit --incremental false",
     "format": "npm run format:write",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:write": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
