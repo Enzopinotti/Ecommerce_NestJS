@@ -68,8 +68,8 @@ jobs:
           pkg.jest = {
             ...pkg.jest,
             transform: {
-              '^.+[.]ts\\z': 'ts-jest',
-              '^.+[.]js\\z': [
+              '^.+[.]ts$': 'ts-jest',
+              '^.+[.]js$': [
                 'babel-jest',
                 {
                   presets: [
