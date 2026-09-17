@@ -15,7 +15,7 @@ describe('UsersController recovery boundary', () => {
       resetPassword: jest.fn(),
     };
     controller = new UsersController(
-      {} as UsersService,
+      {} as unknown as UsersService,
       passwordRecoveryService as unknown as PasswordRecoveryService,
     );
   });

@@ -1,7 +1,6 @@
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Model } from 'mongoose';
-import { UserDocument, User } from './schema/users.schema';
+import { User } from './schema/users.schema';
 import { UsersService } from './users.service';
 
 describe('UsersService recovery persistence', () => {
