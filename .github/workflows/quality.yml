@@ -1,0 +1,96 @@
+name: Quality
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      - modernize/2026-nest-quality
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Verify toolchain identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_node="$(tr -d '\r\n' < .nvmrc)"
+          actual_node="$(node --version)"
+          expected_npm="$(node -p "require('./package.json').packageManager.split('@')[1]")"
+          actual_npm="$(npm --version)"
+
+          printf 'node=%s\n' "$actual_node"
+          printf 'npm=%s\n' "$actual_npm"
+          printf 'sha=%s\n' "$GITHUB_SHA"
+
+          test "$actual_node" = "$expected_node"
+          test "$actual_npm" = "$expected_npm"
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Blocking B1 quality contract
+        id: quality
+        run: npm run quality
+
+      - name: Formatting debt inventory
+        id: format_debt
+        if: always()
+        continue-on-error: true
+        run: npm run format:check
+
+      - name: Production dependency audit inventory
+        id: audit_debt
+        if: always()
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Write quality evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# B1 quality evidence"
+            echo
+            echo "- SHA: \`${GITHUB_SHA}\`"
+            echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
+            echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
+            echo "- blocking quality: \`${{ steps.quality.outcome }}\`"
+            echo "- format debt inventory: \`${{ steps.format_debt.outcome }}\`"
+            echo "- production audit inventory: \`${{ steps.audit_debt.outcome }}\`"
+            echo
+            echo "The blocking B1 contract ratchets the B0 lint/unit baselines instead of pretending that historical debt is already fixed."
+            echo "Formatting and dependency advisories remain explicit non-blocking debt until their dedicated modernization blocks reduce them."
+          } | tee quality-summary.md
+          cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload quality evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b1-quality-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: quality-summary.md
