@@ -46,26 +46,41 @@ jobs:
           code=$?
           echo "npm-audit-production-exit=$code" > b6-audit-status.txt
           test "$code" -ge 0
+      - name: Print concise dependency inventory
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const outdated = JSON.parse(fs.readFileSync('b6-outdated.json', 'utf8') || '{}');
+          console.log('B6 outdated inventory');
+          for (const name of Object.keys(outdated).sort()) {
+            const item = outdated[name];
+            console.log(`${name}: current=${item.current ?? 'n/a'} wanted=${item.wanted ?? 'n/a'} latest=${item.latest ?? 'n/a'}`);
+          }
+          const audit = JSON.parse(fs.readFileSync('b6-audit-production.json', 'utf8'));
+          console.log('B6 production audit metadata');
+          console.log(JSON.stringify(audit.metadata?.vulnerabilities ?? {}, null, 2));
+          NODE
       - name: Probe full-project typecheck
         id: full_typecheck
         continue-on-error: true
         run: npm run typecheck:all
-      - name: Probe force-consistent casing
-        id: casing
+      - name: Probe source force-consistent casing
+        id: source_casing
         continue-on-error: true
-        run: npx tsc -p tsconfig.json --noEmit --incremental false --forceConsistentCasingInFileNames true
-      - name: Probe noImplicitAny
-        id: implicit_any
+        run: npx tsc -p tsconfig.build.json --noEmit --incremental false --forceConsistentCasingInFileNames true
+      - name: Probe source noImplicitAny
+        id: source_implicit_any
         continue-on-error: true
-        run: npx tsc -p tsconfig.json --noEmit --incremental false --noImplicitAny true
-      - name: Probe strictNullChecks
-        id: strict_nulls
+        run: npx tsc -p tsconfig.build.json --noEmit --incremental false --noImplicitAny true
+      - name: Probe source strictNullChecks
+        id: source_strict_nulls
         continue-on-error: true
-        run: npx tsc -p tsconfig.json --noEmit --incremental false --strictNullChecks true
-      - name: Probe strict mode
-        id: strict
+        run: npx tsc -p tsconfig.build.json --noEmit --incremental false --strictNullChecks true
+      - name: Probe source strict mode
+        id: source_strict
         continue-on-error: true
-        run: npx tsc -p tsconfig.json --noEmit --incremental false --strict true
+        run: npx tsc -p tsconfig.build.json --noEmit --incremental false --strict true
       - name: Write inventory summary
         if: always()
         shell: bash
@@ -75,11 +90,11 @@ jobs:
             echo "- SHA: \`${GITHUB_SHA}\`"
             echo "- Node: \`$(node --version)\`"
             echo "- npm: \`$(npm --version)\`"
-            echo "- full typecheck: \`${{ steps.full_typecheck.outcome }}\`"
-            echo "- forceConsistentCasing: \`${{ steps.casing.outcome }}\`"
-            echo "- noImplicitAny: \`${{ steps.implicit_any.outcome }}\`"
-            echo "- strictNullChecks: \`${{ steps.strict_nulls.outcome }}\`"
-            echo "- strict: \`${{ steps.strict.outcome }}\`"
+            echo "- full-project typecheck: \`${{ steps.full_typecheck.outcome }}\`"
+            echo "- source forceConsistentCasing: \`${{ steps.source_casing.outcome }}\`"
+            echo "- source noImplicitAny: \`${{ steps.source_implicit_any.outcome }}\`"
+            echo "- source strictNullChecks: \`${{ steps.source_strict_nulls.outcome }}\`"
+            echo "- source strict: \`${{ steps.source_strict.outcome }}\`"
           } | tee b6-inventory-summary.md
           cat b6-inventory-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload B6 inventory evidence
