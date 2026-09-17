@@ -6,6 +6,7 @@ on:
       - modernize/2026-ts-dependencies
     paths:
       - .github/workflows/b6-compatible-types.yml
+      - src/mail/mail.tokens.ts
 
 permissions:
   contents: write
