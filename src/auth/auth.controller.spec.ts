@@ -4,14 +4,16 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { SESSION_COOKIE_NAME, SESSION_TTL_MS } from './session-cookie';
 
+const user = {
+  id: '507f1f77bcf86cd799439011',
+  email: 'auth@example.test',
+  first_name: 'Auth',
+  last_name: 'User',
+};
+
 const session = {
   token: 'private-jwt-token',
-  user: {
-    id: '507f1f77bcf86cd799439011',
-    email: 'auth@example.test',
-    first_name: 'Auth',
-    last_name: 'User',
-  },
+  user,
 };
 
 describe('AuthController', () => {
@@ -27,7 +29,7 @@ describe('AuthController', () => {
 
   beforeEach(() => {
     authService = {
-      register: jest.fn().mockResolvedValue(session),
+      register: jest.fn().mockResolvedValue(user),
       login: jest.fn().mockResolvedValue(session),
     };
     response = {
@@ -45,17 +47,26 @@ describe('AuthController', () => {
     );
   });
 
-  it('sets the hardened cookie on registration without returning the JWT', async () => {
-    const body = await controller.register(
-      {
-        first_name: 'Auth',
-        last_name: 'User',
-        birthDate: new Date('1995-01-01'),
-        email: 'auth@example.test',
-        password: 'Password123',
-        phone: '',
-        avatar: '',
-      },
+  it('registers without creating or returning a session token', async () => {
+    const body = await controller.register({
+      first_name: 'Auth',
+      last_name: 'User',
+      birthDate: new Date('1995-01-01'),
+      email: 'auth@example.test',
+      password: 'Password123',
+      phone: '',
+      avatar: '',
+    });
+
+    expect(response.cookie).not.toHaveBeenCalled();
+    expect(body).not.toHaveProperty('token');
+    expect(body).not.toHaveProperty('access_token');
+    expect(body.user).toEqual(user);
+  });
+
+  it('sets the hardened cookie on login without returning the JWT', async () => {
+    const body = await controller.login(
+      { email: 'auth@example.test', password: 'Password123' },
       response as unknown as Response,
     );
 
@@ -72,32 +83,15 @@ describe('AuthController', () => {
     );
     expect(body).not.toHaveProperty('token');
     expect(body).not.toHaveProperty('access_token');
-    expect(body.user).toEqual(session.user);
-  });
-
-  it('sets the same cookie contract on login without returning the JWT', async () => {
-    const body = await controller.login(
-      { email: 'auth@example.test', password: 'Password123' },
-      response as unknown as Response,
-    );
-
-    expect(response.cookie).toHaveBeenCalledWith(
-      SESSION_COOKIE_NAME,
-      session.token,
-      expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'lax' }),
-    );
-    expect(body).not.toHaveProperty('token');
     expect(body.user.email).toBe('auth@example.test');
   });
 
   it('returns only the identity attached by the JWT guard', () => {
-    const request = { user: session.user } as unknown as Request & {
-      user: typeof session.user;
-    };
+    const request = { user } as unknown as Request & { user: typeof user };
 
     expect(controller.session(request)).toEqual({
       status: 'success',
-      user: session.user,
+      user,
     });
   });
 
