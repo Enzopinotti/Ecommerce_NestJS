@@ -12,6 +12,7 @@ on:
       - modernize/2026-auth-authority
       - modernize/2026-recovery-mail
       - modernize/2026-domain-truth
+      - modernize/2026-ts-dependencies
   workflow_dispatch:
 
 permissions:

@@ -54,7 +54,12 @@ function readPort(
       ? fallback
       : Number(rawValue);
 
-  if (!Number.isInteger(candidate) || candidate < 1 || candidate > 65535) {
+  if (
+    candidate === undefined ||
+    !Number.isInteger(candidate) ||
+    candidate < 1 ||
+    candidate > 65535
+  ) {
     throw new Error(`${key} must be an integer between 1 and 65535`);
   }
 
