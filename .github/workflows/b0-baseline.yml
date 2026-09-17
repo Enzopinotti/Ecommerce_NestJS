@@ -35,10 +35,10 @@ jobs:
 
     steps:
       - name: Checkout exact branch head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
           cache: npm
@@ -114,7 +114,7 @@ jobs:
         continue-on-error: true
         run: npm run test:e2e -- --runInBand
 
-      - name: Production-local runtime smoke
+      - name: Production-local runtime smoke with source tree present
         id: prod_smoke
         if: always() && steps.install.outcome == 'success' && steps.build.outcome == 'success'
         continue-on-error: true
@@ -122,7 +122,7 @@ jobs:
         run: |
           set -u
           rm -f b0-start-prod.log b0-login.headers b0-login.body b0-static.headers b0-static.body
-          npm run start:prod > b0-start-prod.log 2>&1 &
+          node dist/main > b0-start-prod.log 2>&1 &
           pid=$!
           cleanup() {
             kill "$pid" >/dev/null 2>&1 || true
@@ -154,21 +154,152 @@ jobs:
           fi
 
           login_status=$(awk 'NR==1 {print $2}' b0-login.headers)
-          echo "login_status=$login_status"
-          if [ "$login_status" != "200" ]; then
-            cat b0-start-prod.log
-            cat b0-login.body
-            exit 1
-          fi
-
           curl --silent --show-error --max-time 2 \
             --dump-header b0-static.headers \
             --output b0-static.body \
             http://127.0.0.1:3000/css/login.css || true
           static_status=$(awk 'NR==1 {print $2}' b0-static.headers 2>/dev/null || true)
-          echo "static_status=${static_status:-none}"
-          echo "--- start:prod log ---"
-          cat b0-start-prod.log
+          echo "login_status=$login_status" | tee b0-source-tree-smoke.txt
+          echo "static_status=${static_status:-none}" | tee -a b0-source-tree-smoke.txt
+          test "$login_status" = "200"
+          test "$static_status" = "200"
+
+      - name: PORT environment contract baseline
+        id: port_contract
+        if: always() && steps.install.outcome == 'success' && steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -u
+          rm -f b0-port.log b0-port-contract.txt
+          PORT=3123 node dist/main > b0-port.log 2>&1 &
+          pid=$!
+          cleanup() {
+            kill "$pid" >/dev/null 2>&1 || true
+            wait "$pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          on_3000=0
+          on_3123=0
+          for i in $(seq 1 20); do
+            if curl --silent --output /dev/null --max-time 1 http://127.0.0.1:3123/login; then
+              on_3123=1
+              break
+            fi
+            if curl --silent --output /dev/null --max-time 1 http://127.0.0.1:3000/login; then
+              on_3000=1
+              break
+            fi
+            if ! kill -0 "$pid" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          {
+            echo "requested_port=3123"
+            echo "reachable_3123=$on_3123"
+            echo "reachable_3000=$on_3000"
+          } | tee b0-port-contract.txt
+
+          if [ "$on_3123" -eq 1 ] && [ "$on_3000" -eq 0 ]; then
+            exit 0
+          fi
+          echo "PORT environment variable is not the sole listening-port authority" >&2
+          exit 1
+
+      - name: Missing JWT_KEY startup boundary baseline
+        id: missing_jwt
+        if: always() && steps.install.outcome == 'success' && steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -u
+          rm -f b0-missing-jwt.log b0-missing-jwt.txt
+          env -u JWT_KEY node dist/main > b0-missing-jwt.log 2>&1 &
+          pid=$!
+          cleanup() {
+            kill "$pid" >/dev/null 2>&1 || true
+            wait "$pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          started=0
+          for i in $(seq 1 15); do
+            if curl --silent --output /dev/null --max-time 1 http://127.0.0.1:3000/login; then
+              started=1
+              break
+            fi
+            if ! kill -0 "$pid" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          echo "started_without_jwt_key=$started" | tee b0-missing-jwt.txt
+          if [ "$started" -eq 1 ]; then
+            echo "Application listens without JWT_KEY; configuration is not fail-fast" >&2
+            exit 1
+          fi
+          exit 0
+
+      - name: Isolated dist runtime smoke without source tree
+        id: isolated_dist
+        if: always() && steps.install.outcome == 'success' && steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -u
+          rm -f b0-isolated.log b0-isolated-login.headers b0-isolated-login.body \
+            b0-isolated-static.headers b0-isolated-static.body b0-isolated.txt
+          mv src src.b0-hidden
+          node dist/main > b0-isolated.log 2>&1 &
+          pid=$!
+          cleanup() {
+            kill "$pid" >/dev/null 2>&1 || true
+            wait "$pid" >/dev/null 2>&1 || true
+            if [ -d src.b0-hidden ] && [ ! -d src ]; then
+              mv src.b0-hidden src
+            fi
+          }
+          trap cleanup EXIT
+
+          reachable=0
+          for i in $(seq 1 20); do
+            if curl --silent --show-error --max-time 2 \
+              --dump-header b0-isolated-login.headers \
+              --output b0-isolated-login.body \
+              http://127.0.0.1:3000/login; then
+              reachable=1
+              break
+            fi
+            if ! kill -0 "$pid" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          login_status=$(awk 'NR==1 {print $2}' b0-isolated-login.headers 2>/dev/null || true)
+          if [ "$reachable" -eq 1 ]; then
+            curl --silent --show-error --max-time 2 \
+              --dump-header b0-isolated-static.headers \
+              --output b0-isolated-static.body \
+              http://127.0.0.1:3000/css/login.css || true
+          fi
+          static_status=$(awk 'NR==1 {print $2}' b0-isolated-static.headers 2>/dev/null || true)
+
+          {
+            echo "http_reachable=$reachable"
+            echo "login_status=${login_status:-none}"
+            echo "static_status=${static_status:-none}"
+          } | tee b0-isolated.txt
+
+          if [ "$login_status" = "200" ] && [ "$static_status" = "200" ]; then
+            exit 0
+          fi
+          echo "dist runtime depends on files outside dist" >&2
+          exit 1
 
       - name: Baseline outcome table
         if: always()
@@ -176,8 +307,10 @@ jobs:
           {
             echo "# B0 baseline diagnostic"
             echo
-            echo "Source before diagnostic workflow: \`d3313889bf6a774e5cddf2b34685d789c9eecf00\`"
+            echo "Historical source before diagnostic workflow: \`d3313889bf6a774e5cddf2b34685d789c9eecf00\`"
             echo "Diagnostic commit: \`${GITHUB_SHA}\`"
+            echo
+            echo "The job intentionally continues after diagnostic failures; an overall green run does not mean the baseline is clean."
             echo
             echo "| Check | Outcome |"
             echo "| --- | --- |"
@@ -185,18 +318,21 @@ jobs:
             echo "| npm ci | ${{ steps.install.outcome }} |"
             echo "| npm audit | ${{ steps.audit_all.outcome }} |"
             echo "| prod audit high | ${{ steps.audit_prod.outcome }} |"
-            echo "| npm outdated | ${{ steps.outdated.outcome }} |"
+            echo "| npm outdated inventory | ${{ steps.outdated.outcome }} |"
             echo "| build | ${{ steps.build.outcome }} |"
             echo "| ESLint read-only | ${{ steps.lint_readonly.outcome }} |"
             echo "| unit | ${{ steps.unit.outcome }} |"
             echo "| e2e | ${{ steps.e2e.outcome }} |"
-            echo "| start:prod smoke | ${{ steps.prod_smoke.outcome }} |"
+            echo "| start:prod with source tree | ${{ steps.prod_smoke.outcome }} |"
+            echo "| PORT contract | ${{ steps.port_contract.outcome }} |"
+            echo "| missing JWT_KEY fails closed | ${{ steps.missing_jwt.outcome }} |"
+            echo "| isolated dist runtime | ${{ steps.isolated_dist.outcome }} |"
           } | tee b0-summary.md
           cat b0-summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload B0 evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: b0-baseline-${{ github.sha }}
           retention-days: 30
@@ -209,3 +345,14 @@ jobs:
             b0-login.body
             b0-static.headers
             b0-static.body
+            b0-source-tree-smoke.txt
+            b0-port.log
+            b0-port-contract.txt
+            b0-missing-jwt.log
+            b0-missing-jwt.txt
+            b0-isolated.log
+            b0-isolated-login.headers
+            b0-isolated-login.body
+            b0-isolated-static.headers
+            b0-isolated-static.body
+            b0-isolated.txt
