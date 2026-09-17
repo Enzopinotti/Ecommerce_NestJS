@@ -24,10 +24,10 @@ jobs:
 
     steps:
       - name: Checkout exact commit
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup pinned Node runtime
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -55,6 +55,12 @@ jobs:
         id: quality
         run: npm run quality
 
+      - name: Full-project typecheck debt inventory
+        id: typecheck_all_debt
+        if: always()
+        continue-on-error: true
+        run: npm run typecheck:all
+
       - name: Formatting debt inventory
         id: format_debt
         if: always()
@@ -78,17 +84,18 @@ jobs:
             echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
             echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
             echo "- blocking quality: \`${{ steps.quality.outcome }}\`"
+            echo "- full-project typecheck debt: \`${{ steps.typecheck_all_debt.outcome }}\`"
             echo "- format debt inventory: \`${{ steps.format_debt.outcome }}\`"
             echo "- production audit inventory: \`${{ steps.audit_debt.outcome }}\`"
             echo
-            echo "The blocking B1 contract ratchets the B0 lint/unit baselines instead of pretending that historical debt is already fixed."
-            echo "Formatting and dependency advisories remain explicit non-blocking debt until their dedicated modernization blocks reduce them."
+            echo "The blocking B1 contract validates deployable TypeScript and ratchets the B0 lint/unit baselines instead of pretending historical debt is already fixed."
+            echo "The known e2e type error, formatting debt and dependency advisories remain explicit non-blocking inventories until their dedicated modernization blocks reduce them."
           } | tee quality-summary.md
           cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload quality evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: b1-quality-${{ github.sha }}
           retention-days: 30
