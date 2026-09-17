@@ -76,6 +76,16 @@ npm run start:prod
 
 B2 packages Handlebars views and public assets into `dist/`; production no longer depends on `src/views` or `src/public` being present beside the compiled application. The runtime also reads its listening port from validated configuration and keeps Handlebars prototype property/method access disabled.
 
+## Authentication contract
+
+B3 consolidates authentication under one `AuthModule`, one `AuthService`, one JWT strategy and one guard.
+
+The server-rendered application uses the `access_token` HttpOnly cookie as its only browser-session authority. Bearer-only requests do not authenticate that session. Session JWTs carry an explicit `purpose: "session"`, resolve identity through `sub`, and never validate a password as part of session lookup. Password-reset-purpose or legacy purpose-less JWTs are rejected as sessions.
+
+Registration creates the account but does not automatically log the browser in. Login creates the hardened cookie; auth JSON responses do not return the JWT. Browser logout is a POST mutation that clears the same cookie and redirects to `/login`, and `/profile` is guarded explicitly instead of relying on a global Passport middleware side effect.
+
+Password-recovery token storage and mail lifecycle are intentionally still historical at this point; B4 owns that work.
+
 ## Quality commands
 
 The maintenance lane separates checks from commands that modify files:
@@ -91,11 +101,14 @@ npm run test:unit
 npm run test:e2e
 npm run quality            # blocking static local/CI contract
 npm run test:b2:runtime    # production artifact + runtime contract; requires reachable MongoDB
+npm run test:b3:auth       # auth/session production runtime contract; requires reachable MongoDB
 ```
 
-`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors; B2 closed at 382, 92 fewer, and the ratchet was tightened to preserve that improvement.
+`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors, B2 closed at 382 and B3 closed at **182**. The B3 unit ratchet preserves 12 suites with at least 5 passing and at most 7 failing, and 20 tests with at least 13 passing and at most 7 failing.
 
 `npm run test:b2:runtime` builds the real production artifact and validates fail-fast configuration, configurable port, global DTO validation, compiled Handlebars views and compiled static assets. In GitHub Actions it runs against an isolated MongoDB service and temporarily hides the source view/static directories so accidental runtime dependencies on `src/` cannot pass unnoticed.
+
+`npm run test:b3:auth` builds the same production artifact and validates the cookie-only JWT authority against an isolated MongoDB service: single-hash registration, 401/409 semantics, secure cookie flags, guarded session/profile identity, POST logout, token-purpose separation and token-free auth responses.
 
 The permanent GitHub Actions workflow also runs full-project typecheck, formatting and the production dependency audit as explicit debt inventories. Their known failures remain visible until dedicated modernization blocks repair them; a green workflow does not mean that historical test, formatting or supply-chain debt has been erased.
 
@@ -104,6 +117,7 @@ Modernization evidence:
 - [`docs/modernization-2026/b0-baseline.md`](docs/modernization-2026/b0-baseline.md)
 - [`docs/modernization-2026/b1-toolchain-quality.md`](docs/modernization-2026/b1-toolchain-quality.md)
 - [`docs/modernization-2026/b2-config-runtime.md`](docs/modernization-2026/b2-config-runtime.md)
+- [`docs/modernization-2026/b3-auth-authority.md`](docs/modernization-2026/b3-auth-authority.md)
 
 ## Portfolio status
 
@@ -117,6 +131,8 @@ The active 2026 maintenance lane focuses on:
 - tightening API/auth boundaries where useful;
 - documenting historical versus maintained behavior;
 - avoiding duplication with the already-modernized Meow Matrix full-stack ecommerce lineage.
+
+B0–B3 established the reproducible runtime, permanent quality gates, production artifact contract and one coherent authentication authority. The next executable block is B4: credentials, password recovery and mail security.
 
 Portfolio coordination: [`Enzopinotti/Enzopinotti#19`](https://github.com/Enzopinotti/Enzopinotti/issues/19)
 
