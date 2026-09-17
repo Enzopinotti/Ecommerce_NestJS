@@ -9,6 +9,7 @@ on:
       - main
       - modernize/2026-nest-quality
       - modernize/2026-config-runtime
+      - modernize/2026-auth-authority
   workflow_dispatch:
 
 permissions:
