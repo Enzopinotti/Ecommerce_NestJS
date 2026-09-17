@@ -1,0 +1,105 @@
+name: B6 isolated Nest 12 migration
+
+on:
+  push:
+    branches:
+      - modernize/2026-ts-dependencies
+    paths:
+      - .github/workflows/b6-nest12.yml
+
+permissions:
+  contents: write
+
+jobs:
+  nest12:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install verified B6 baseline
+        run: npm ci
+      - name: Write aligned Nest 12 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('node:fs');
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          Object.assign(pkg.dependencies, {
+            '@nestjs/common':'12.0.3',
+            '@nestjs/config':'12.0.0',
+            '@nestjs/core':'12.0.3',
+            '@nestjs/jwt':'12.0.2',
+            '@nestjs/mapped-types':'12.0.0',
+            '@nestjs/mongoose':'12.0.0',
+            '@nestjs/passport':'12.0.0',
+            '@nestjs/platform-express':'12.0.3',
+          });
+          Object.assign(pkg.devDependencies, {
+            '@nestjs/cli':'12.0.3',
+            '@nestjs/schematics':'12.0.3',
+            '@nestjs/testing':'12.0.3',
+          });
+          fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');
+          NODE
+          npm install
+      - name: Reinstall exact Nest 12 graph
+        shell: bash
+        run: |
+          rm -rf node_modules
+          npm ci
+      - name: Require production high audit clean
+        run: npm audit --omit=dev --audit-level=high
+      - name: Verify static and unit contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck:all
+          npm run quality:hygiene
+          npm run typecheck
+          npm run build
+          npm run quality:lint-baseline
+          npm run quality:unit-baseline
+      - name: Verify cumulative runtime contracts
+        env:
+          B2_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b2
+          B3_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b3
+          B4_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b4
+          B5_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b5
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:b2:runtime
+          npm run test:b3:auth
+          npm run test:b4:recovery
+          npm run test:b5:domain
+      - name: Commit validated Nest 12 migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "Enzo Pinotti"
+          git config user.email "enzopinottii@gmail.com"
+          git add package.json package-lock.json
+          git commit -m "B6: migrate isolated Nest stack to 12"
+          git fetch origin modernize/2026-ts-dependencies
+          git rebase origin/modernize/2026-ts-dependencies
+          git push origin HEAD:modernize/2026-ts-dependencies
