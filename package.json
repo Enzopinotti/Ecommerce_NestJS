@@ -32,6 +32,7 @@
     "test:b2:runtime": "npm run build && node scripts/b2/runtime-contract.mjs",
     "test:b3:auth": "npm run build && node scripts/b3/auth-runtime.mjs",
     "test:b4:recovery": "npm run build && node scripts/b4/recovery-runtime.mjs",
+    "test:b5:domain": "npm run build && node scripts/b5/domain-runtime.mjs",
     "quality:hygiene": "node scripts/quality/hygiene.mjs",
     "quality:lint-baseline": "node scripts/quality/lint-baseline.mjs",
     "quality:unit-baseline": "node scripts/quality/unit-baseline.mjs",
