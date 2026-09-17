@@ -1,0 +1,102 @@
+name: B6 semver-safe audit repair
+
+on:
+  push:
+    branches:
+      - modernize/2026-ts-dependencies
+    paths:
+      - .github/workflows/b6-audit-safe.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit-safe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install current verified graph
+        run: npm ci
+      - name: Apply semver-safe audit fixes only
+        run: npm audit fix
+      - name: Reinstall resulting lockfile
+        shell: bash
+        run: |
+          rm -rf node_modules
+          npm ci
+      - name: Report remaining production audit
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > b6-audit-safe.json
+          code=$?
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const audit=JSON.parse(fs.readFileSync('b6-audit-safe.json','utf8'));
+          console.log('remaining production vulnerabilities', audit.metadata?.vulnerabilities ?? {});
+          for (const [name, item] of Object.entries(audit.vulnerabilities ?? {})) {
+            if (item.isDirect || item.severity === 'critical' || item.severity === 'high') {
+              console.log(`${name}: severity=${item.severity} direct=${item.isDirect} range=${item.range}`);
+            }
+          }
+          NODE
+          echo "audit_exit=$code"
+          exit 0
+      - name: Verify static and unit contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck:all
+          npm run quality:hygiene
+          npm run typecheck
+          npm run build
+          npm run quality:lint-baseline
+          npm run quality:unit-baseline
+      - name: Verify cumulative runtime contracts
+        env:
+          B2_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b2
+          B3_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b3
+          B4_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b4
+          B5_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b5
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:b2:runtime
+          npm run test:b3:auth
+          npm run test:b4:recovery
+          npm run test:b5:domain
+      - name: Commit safe audit repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "Enzo Pinotti"
+          git config user.email "enzopinottii@gmail.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "No semver-safe audit changes to commit."
+            exit 0
+          fi
+          git commit -m "B6: apply semver-safe dependency security fixes"
+          git fetch origin modernize/2026-ts-dependencies
+          git rebase origin/modernize/2026-ts-dependencies
+          git push origin HEAD:modernize/2026-ts-dependencies
