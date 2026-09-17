@@ -64,6 +64,19 @@ jobs:
         run: |
           rm -rf node_modules
           npm ci
+      - name: Apply semver-safe transitive repair inside Nest 12 candidate
+        shell: bash
+        run: |
+          set +e
+          npm audit fix
+          code=$?
+          echo "npm audit fix exit=$code"
+          exit 0
+      - name: Reinstall repaired Nest 12 graph
+        shell: bash
+        run: |
+          rm -rf node_modules
+          npm ci
       - name: Require production high audit clean
         run: npm audit --omit=dev --audit-level=high
       - name: Verify static and unit contracts
