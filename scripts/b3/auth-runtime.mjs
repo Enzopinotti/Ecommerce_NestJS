@@ -4,6 +4,7 @@ import net from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
 const repoRoot = process.cwd();
@@ -231,6 +232,38 @@ async function main() {
       'Bearer-only auth must not bypass the cookie session authority',
     );
 
+    const resetPurposeToken = jwt.sign(
+      {
+        email,
+        sub: registerBody.user.id,
+        purpose: 'password-reset',
+      },
+      safeJwtKey,
+      { expiresIn: '1h' },
+    );
+    const resetPurposeSession = await fetch(`${baseUrl}/auth/session`, {
+      headers: { cookie: `access_token=${resetPurposeToken}` },
+    });
+    assert.equal(
+      resetPurposeSession.status,
+      401,
+      'a valid password-reset JWT must never authenticate as a session',
+    );
+
+    const legacyToken = jwt.sign(
+      { email, sub: registerBody.user.id },
+      safeJwtKey,
+      { expiresIn: '1h' },
+    );
+    const legacySession = await fetch(`${baseUrl}/auth/session`, {
+      headers: { cookie: `access_token=${legacyToken}` },
+    });
+    assert.equal(
+      legacySession.status,
+      401,
+      'pre-B3 JWTs without an explicit session purpose must require re-login',
+    );
+
     const malformedCookieSession = await fetch(`${baseUrl}/auth/session`, {
       headers: { cookie: 'access_token=not-a-jwt' },
     });
@@ -297,9 +330,9 @@ async function main() {
   }
 
   console.log('B3 auth runtime contract passed.');
-  console.log('authority=cookie-only jwt=single-registration identity=sub');
+  console.log('authority=cookie-only jwt=single-registration identity=sub purpose=session');
   console.log('register=201 login=200 invalid=401 duplicate=409 logout=clear-cookie');
-  console.log('responses=no-token persistence=single-bcrypt-hash session=guarded');
+  console.log('responses=no-token persistence=single-bcrypt-hash reset-token=rejected');
 }
 
 main().catch((error) => {
