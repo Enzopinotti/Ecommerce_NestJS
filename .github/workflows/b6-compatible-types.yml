@@ -85,8 +85,15 @@ jobs:
           npm ci
       - name: Verify full project typecheck
         run: npm run typecheck:all
-      - name: Verify blocking quality
-        run: npm run quality
+      - name: Verify blocking quality components
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run quality:hygiene
+          npm run typecheck
+          npm run build
+          npm run quality:lint-baseline
+          npm run quality:unit-baseline
       - name: Commit reproducible type boundary
         shell: bash
         run: |
