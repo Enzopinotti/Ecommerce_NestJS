@@ -25,22 +25,9 @@ export class UsersAuthController {
   ) {}
 
   @Post('register')
-  async register(
-    @Body() createUserDto: CreateUserDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const session = await this.authService.register(createUserDto);
-    response.cookie(
-      SESSION_COOKIE_NAME,
-      session.token,
-      sessionCookieOptions(this.isProduction()),
-    );
-
-    return {
-      message: 'Registration successful',
-      status: 'success',
-      user: session.user,
-    };
+  async register(@Body() createUserDto: CreateUserDto) {
+    const user = await this.authService.register(createUserDto);
+    return { message: 'Registration successful', status: 'success', user };
   }
 
   @Post('login')
