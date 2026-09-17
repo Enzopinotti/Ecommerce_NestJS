@@ -1,7 +1,7 @@
 # compiled output
 /dist
-/node_modules
 /build
+/node_modules
 
 # Logs
 logs
@@ -15,9 +15,12 @@ lerna-debug.log*
 # OS
 .DS_Store
 
-# Tests
+# Tests and quality output
 /coverage
 /.nyc_output
+/.quality
+.eslintcache
+*.tsbuildinfo
 
 # IDEs and editors
 /.idea
@@ -37,14 +40,13 @@ lerna-debug.log*
 
 # dotenv environment variable files
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+.env.*
+!.env.example
 
 # temp directory
 .temp
 .tmp
+.cache
 
 # Runtime data
 pids
