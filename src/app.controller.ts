@@ -18,7 +18,6 @@ import {
   SESSION_COOKIE_NAME,
   sessionClearCookieOptions,
 } from './auth/session-cookie';
-import { AppService } from './app.service';
 import { CategoriesService } from './categories/categories.service';
 import { ProductsService } from './products/products.service';
 import { UsersService } from './users/users.service';
@@ -30,7 +29,6 @@ export class AppController {
   private readonly logger = new Logger(AppController.name);
 
   constructor(
-    private readonly appService: AppService,
     private readonly userService: UsersService,
     private readonly productService: ProductsService,
     private readonly categoryService: CategoriesService,
