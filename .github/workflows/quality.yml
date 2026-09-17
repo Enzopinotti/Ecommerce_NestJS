@@ -164,3 +164,64 @@ jobs:
           retention-days: 30
           if-no-files-found: error
           path: b2-runtime-summary.md
+
+  b3-auth-runtime:
+    needs: b2-runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Blocking B3 authentication contract
+        id: b3_auth
+        env:
+          B3_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b3
+        run: npm run test:b3:auth
+
+      - name: Write B3 auth evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# B3 authentication evidence"
+            echo
+            echo "- SHA: \`${GITHUB_SHA}\`"
+            echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
+            echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
+            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
+            echo "- auth contract: \`${{ steps.b3_auth.outcome }}\`"
+            echo
+            echo "The B3 gate validates cookie-only JWT authority, single-hash registration, guarded session identity, 401/409 semantics, secure cookie flags, logout clearing and token-free JSON responses."
+          } | tee b3-auth-summary.md
+          cat b3-auth-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload B3 auth evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: b3-auth-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: b3-auth-summary.md
