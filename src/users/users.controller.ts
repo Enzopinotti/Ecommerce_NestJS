@@ -40,7 +40,11 @@ export class UsersController {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
-    const payload = { email: user.email, sub: user._id };
+    const payload = {
+      email: String(user.email),
+      sub: user._id.toString(),
+      purpose: 'password-reset',
+    };
     const token = this.jwtService.sign(payload);
 
     user.resetPasswordToken = token;
