@@ -43,13 +43,21 @@ npm --version
 npm ci
 ```
 
-The verified B1 toolchain is Node `v24.20.0` and npm `11.19.0`. `.npmrc` uses `engine-strict=true`, so unsupported Node/npm versions fail instead of silently drifting.
+The verified maintenance toolchain is Node `v24.20.0` and npm `11.19.0`. `.npmrc` uses `engine-strict=true`, so unsupported Node/npm versions fail instead of silently drifting.
 
-Create a local environment file from the safe template and replace only local placeholders as needed:
+Create a local environment file from the safe template:
 
 ```bash
 cp .env.example .env
 ```
+
+The B2 runtime validates configuration before the application starts. The required application values are:
+
+- `MONGODB_URI` using `mongodb://` or `mongodb+srv://`;
+- `JWT_KEY` with at least 32 characters;
+- `APP_BASE_URL` as an absolute `http://` or `https://` URL.
+
+`NODE_ENV` defaults to `development`, `PORT` defaults to `3000`, and `MAIL_ENABLED` defaults to `false`. Mail credentials are required only when `MAIL_ENABLED=true`. Invalid or missing required configuration stops bootstrap before the HTTP server listens, and bootstrap errors do not print secret values.
 
 Do not commit real credentials, JWT secrets or database credentials.
 
@@ -59,17 +67,18 @@ Development mode:
 npm run start:dev
 ```
 
-Build:
+Production build and runtime:
 
 ```bash
 npm run build
+npm run start:prod
 ```
 
-> The 2026 B0 baseline proved that compilation succeeds but the current historical `dist` output is not yet an autonomous deployable artifact because views/static assets still resolve through `src/`. B2 owns that runtime correction; do not interpret a successful build as production-readiness yet.
+B2 packages Handlebars views and public assets into `dist/`; production no longer depends on `src/views` or `src/public` being present beside the compiled application. The runtime also reads its listening port from validated configuration and keeps Handlebars prototype property/method access disabled.
 
 ## Quality commands
 
-B1 separates checks from commands that modify files:
+The maintenance lane separates checks from commands that modify files:
 
 ```bash
 npm run typecheck          # deployable source contract (tsconfig.build.json)
@@ -80,14 +89,21 @@ npm run lint               # read-only
 npm run lint:fix           # explicit mutation
 npm run test:unit
 npm run test:e2e
-npm run quality            # blocking B1 local/CI contract
+npm run quality            # blocking static local/CI contract
+npm run test:b2:runtime    # production artifact + runtime contract; requires reachable MongoDB
 ```
 
-`npm run quality` is intentionally honest about the historical baseline. It requires hygiene, deployable-source typechecking and build to pass, and it uses ratchets for the known B0 lint/unit debt so those areas may improve but may not regress.
+`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors; B2 reduced that count to 383 and the ratchet was tightened to preserve the improvement.
 
-The permanent GitHub Actions workflow also runs full-project typecheck, formatting and the production dependency audit as explicit debt inventories. They remain visible even while their known B0 failures are not yet promoted to blocking gates.
+`npm run test:b2:runtime` builds the real production artifact and validates fail-fast configuration, configurable port, global DTO validation, compiled Handlebars views and compiled static assets. In GitHub Actions it runs against an isolated MongoDB service and temporarily hides the source view/static directories so accidental runtime dependencies on `src/` cannot pass unnoticed.
 
-Current B0 debt boundaries are documented under [`docs/modernization-2026/b0-baseline.md`](docs/modernization-2026/b0-baseline.md). B1 and later blocks progressively tighten these gates rather than hiding failures with autofix or broad dependency upgrades.
+The permanent GitHub Actions workflow also runs full-project typecheck, formatting and the production dependency audit as explicit debt inventories. Their known failures remain visible until dedicated modernization blocks repair them; a green workflow does not mean that historical test, formatting or supply-chain debt has been erased.
+
+Modernization evidence:
+
+- [`docs/modernization-2026/b0-baseline.md`](docs/modernization-2026/b0-baseline.md)
+- [`docs/modernization-2026/b1-toolchain-quality.md`](docs/modernization-2026/b1-toolchain-quality.md)
+- [`docs/modernization-2026/b2-config-runtime.md`](docs/modernization-2026/b2-config-runtime.md)
 
 ## Portfolio status
 
