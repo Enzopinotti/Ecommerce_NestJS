@@ -6,6 +6,8 @@ on:
       - modernize/2026-ts-dependencies
     paths:
       - .github/workflows/b6-nest12.yml
+      - src/auth/jwt-auth.guard.ts
+      - src/carts/dto/update-cart.dto.ts
 
 permissions:
   contents: write
