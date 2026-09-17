@@ -8,10 +8,10 @@ const eslint = path.join(
   process.platform === 'win32' ? 'eslint.cmd' : 'eslint',
 );
 
-// B0 started at 474 errors. B2 legitimately reduced that debt to 383,
-// so future blocks are not allowed to give those 91 errors back.
+// B0 started at 474 errors. B2 legitimately reduced that debt to 382,
+// so future blocks are not allowed to give those 92 errors back.
 const baseline = {
-  errors: 383,
+  errors: 382,
   warnings: 0,
 };
 
