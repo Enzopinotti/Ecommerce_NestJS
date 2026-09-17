@@ -66,4 +66,7 @@ export async function bootstrap(): Promise<void> {
   logger.log(`Application listening on configured port ${port}`);
 }
 
-void bootstrap();
+void bootstrap().catch(() => {
+  logger.error('Application bootstrap failed');
+  process.exitCode = 1;
+});
