@@ -1,9 +1,24 @@
+import { Allow } from 'class-validator';
+
 export class CreateUserDto {
-    first_name: String;
-    last_name: String;
-    birthDate: Date;
-    email: String;
-    password: String;
-    phone: String;
-    avatar: String;
+  @Allow()
+  first_name: String;
+
+  @Allow()
+  last_name: String;
+
+  @Allow()
+  birthDate: Date;
+
+  @Allow()
+  email: String;
+
+  @Allow()
+  password: String;
+
+  @Allow()
+  phone: String;
+
+  @Allow()
+  avatar: String;
 }
