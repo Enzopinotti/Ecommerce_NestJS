@@ -93,7 +93,7 @@ npm run quality            # blocking static local/CI contract
 npm run test:b2:runtime    # production artifact + runtime contract; requires reachable MongoDB
 ```
 
-`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors; B2 reduced that count to 383 and the ratchet was tightened to preserve the improvement.
+`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors; B2 closed at 382, 92 fewer, and the ratchet was tightened to preserve that improvement.
 
 `npm run test:b2:runtime` builds the real production artifact and validates fail-fast configuration, configurable port, global DTO validation, compiled Handlebars views and compiled static assets. In GitHub Actions it runs against an isolated MongoDB service and temporarily hides the source view/static directories so accidental runtime dependencies on `src/` cannot pass unnoticed.
 
