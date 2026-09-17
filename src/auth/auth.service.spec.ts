@@ -39,7 +39,7 @@ describe('AuthService', () => {
     );
   });
 
-  it('registers through the single password-hashing persistence path', async () => {
+  it('registers through the single password-hashing persistence path without creating a session', async () => {
     usersService.findByEmail.mockResolvedValue(null);
     usersService.create.mockResolvedValue(userFixture('stored-hash'));
 
@@ -59,19 +59,12 @@ describe('AuthService', () => {
     expect(usersService.create.mock.calls[0][0].password).toBe(
       'PlainPassword123',
     );
-    expect(jwtService.signAsync).toHaveBeenCalledWith({
-      email: 'auth@example.test',
-      sub: '507f1f77bcf86cd799439011',
-      purpose: 'session',
-    });
+    expect(jwtService.signAsync).not.toHaveBeenCalled();
     expect(result).toEqual({
-      token: 'signed-session-token',
-      user: {
-        id: '507f1f77bcf86cd799439011',
-        email: 'auth@example.test',
-        first_name: 'Auth',
-        last_name: 'User',
-      },
+      id: '507f1f77bcf86cd799439011',
+      email: 'auth@example.test',
+      first_name: 'Auth',
+      last_name: 'User',
     });
   });
 
@@ -104,7 +97,7 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
-  it('logs in with the persisted single bcrypt hash', async () => {
+  it('logs in with the persisted single bcrypt hash and issues a session-purpose JWT', async () => {
     const storedHash = await hashPassword('CorrectPassword123');
     usersService.findByEmail.mockResolvedValue(userFixture(storedHash));
 
@@ -113,6 +106,11 @@ describe('AuthService', () => {
       password: 'CorrectPassword123',
     });
 
+    expect(jwtService.signAsync).toHaveBeenCalledWith({
+      email: 'auth@example.test',
+      sub: '507f1f77bcf86cd799439011',
+      purpose: 'session',
+    });
     expect(result.token).toBe('signed-session-token');
     expect(result.user.email).toBe('auth@example.test');
   });
