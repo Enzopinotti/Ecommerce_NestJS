@@ -15,15 +15,14 @@ const outputFile = path.join(
   `ecommerce-nestjs-jest-${process.pid}-${Date.now()}.json`,
 );
 
-// B4 leaves only the historical Products/Categories scaffold suites red.
-// Later blocks may improve this baseline but may not regress it.
+// B5 repaired the remaining historical Products/Categories scaffold suites.
+// Unit coverage is now a normal zero-failure gate. New tests are welcome;
+// later blocks may not reduce the verified suite/test counts.
 const baseline = {
-  maxFailedSuites: 4,
-  minPassedSuites: 10,
+  minPassedSuites: 14,
   minTotalSuites: 14,
-  maxFailedTests: 4,
-  minPassedTests: 29,
-  minTotalTests: 33,
+  minPassedTests: 38,
+  minTotalTests: 38,
 };
 
 const result = spawnSync(
@@ -67,19 +66,15 @@ const actual = {
   totalTests: report.numTotalTests ?? 0,
 };
 
-console.log('Unit-test debt ratchet');
-console.log(
-  `failed_suites=${actual.failedSuites} baseline_max=${baseline.maxFailedSuites}`,
-);
+console.log('Unit-test gate');
+console.log(`failed_suites=${actual.failedSuites} expected=0`);
 console.log(
   `passed_suites=${actual.passedSuites} baseline_min=${baseline.minPassedSuites}`,
 );
 console.log(
   `total_suites=${actual.totalSuites} baseline_min=${baseline.minTotalSuites}`,
 );
-console.log(
-  `failed_tests=${actual.failedTests} baseline_max=${baseline.maxFailedTests}`,
-);
+console.log(`failed_tests=${actual.failedTests} expected=0`);
 console.log(
   `passed_tests=${actual.passedTests} baseline_min=${baseline.minPassedTests}`,
 );
@@ -88,49 +83,34 @@ console.log(
 );
 
 const regressions = [];
-if (actual.failedSuites > baseline.maxFailedSuites) {
-  regressions.push(
-    `failed suites increased from baseline max ${baseline.maxFailedSuites} to ${actual.failedSuites}`,
-  );
+if (result.status !== 0 || actual.failedSuites !== 0 || actual.failedTests !== 0) {
+  regressions.push('the unit suite is no longer fully green');
 }
 if (actual.passedSuites < baseline.minPassedSuites) {
   regressions.push(
-    `passed suites dropped below baseline min ${baseline.minPassedSuites} to ${actual.passedSuites}`,
+    `passed suites dropped below ${baseline.minPassedSuites} to ${actual.passedSuites}`,
   );
 }
 if (actual.totalSuites < baseline.minTotalSuites) {
   regressions.push(
-    `total suites dropped below baseline min ${baseline.minTotalSuites} to ${actual.totalSuites}`,
-  );
-}
-if (actual.failedTests > baseline.maxFailedTests) {
-  regressions.push(
-    `failed tests increased from baseline max ${baseline.maxFailedTests} to ${actual.failedTests}`,
+    `total suites dropped below ${baseline.minTotalSuites} to ${actual.totalSuites}`,
   );
 }
 if (actual.passedTests < baseline.minPassedTests) {
   regressions.push(
-    `passed tests dropped below baseline min ${baseline.minPassedTests} to ${actual.passedTests}`,
+    `passed tests dropped below ${baseline.minPassedTests} to ${actual.passedTests}`,
   );
 }
 if (actual.totalTests < baseline.minTotalTests) {
   regressions.push(
-    `total tests dropped below baseline min ${baseline.minTotalTests} to ${actual.totalTests}`,
+    `total tests dropped below ${baseline.minTotalTests} to ${actual.totalTests}`,
   );
 }
 
 if (regressions.length > 0) {
-  console.error('Unit-test baseline regressed:');
+  console.error('Unit-test contract regressed:');
   for (const regression of regressions) console.error(`- ${regression}`);
   process.exit(1);
 }
 
-if (result.status === 0) {
-  console.log(
-    'Historical unit suite is fully green; the ratchet can be tightened to a normal test gate.',
-  );
-} else {
-  console.log(
-    'Known Products/Categories historical failures remain, but the B4 baseline did not regress.',
-  );
-}
+console.log('Unit suite is fully green and meets the B5 coverage-count floor.');

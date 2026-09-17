@@ -2,7 +2,7 @@
 
 Historical backend-learning project built with **NestJS + TypeScript + MongoDB/Mongoose**.
 
-The repository started from the Nest starter, but the application grew beyond that scaffold: it contains ecommerce-oriented modules for authentication, users, products, categories, carts and mail. This README documents the repository itself instead of the generic Nest framework template.
+The repository started from the Nest starter, but the application grew beyond that scaffold: it contains ecommerce-oriented areas for authentication, users, products, categories, mail and historical cart experiments. This README documents the repository itself instead of the generic Nest framework template.
 
 ## Stack
 
@@ -19,16 +19,17 @@ The repository started from the Nest starter, but the application grew beyond th
 
 ## Repository structure
 
-The current source includes dedicated areas for:
+The maintained runtime includes dedicated areas for:
 
 - `auth/`
 - `users/`
 - `products/`
 - `categories/`
-- `carts/`
 - `mail/`
 - `middleware/`
 - configuration and shared utilities
+
+Historical `carts/` scaffold source remains in the repository for learning history, but B5 deliberately removed it from the active runtime because it did not implement a real cart domain.
 
 This is an academic/learning backend, not the authoritative backend for my current ecommerce work.
 
@@ -51,7 +52,7 @@ Create a local environment file from the safe template:
 cp .env.example .env
 ```
 
-The B2 runtime validates configuration before the application starts. The required application values are:
+Required application values are:
 
 - `MONGODB_URI` using `mongodb://` or `mongodb+srv://`;
 - `JWT_KEY` with at least 32 characters;
@@ -80,42 +81,55 @@ B2 packages Handlebars views and public assets into `dist/`; production no longe
 
 B3 consolidates authentication under one `AuthModule`, one `AuthService`, one JWT strategy and one guard.
 
-The server-rendered application uses the `access_token` HttpOnly cookie as its only browser-session authority. Bearer-only requests do not authenticate that session. Session JWTs carry an explicit `purpose: "session"`, resolve identity through `sub`, and never validate a password as part of session lookup. Non-session-purpose or legacy purpose-less JWTs are rejected as sessions.
+The server-rendered application uses the `access_token` HttpOnly cookie as its browser-session authority. Bearer-only requests do not authenticate that session. Session JWTs carry `purpose: "session"`, resolve identity through `sub`, and never validate a password as part of session lookup. Non-session-purpose or legacy purpose-less JWTs are rejected as sessions.
 
-Registration creates the account but does not automatically log the browser in. Login creates the hardened cookie; auth JSON responses do not return the JWT. Browser logout is a POST mutation that clears the same cookie and redirects to `/login`, and `/profile` is guarded explicitly instead of relying on a global Passport middleware side effect.
+Registration creates the account but does not automatically log the browser in. Login creates the hardened cookie; auth JSON responses do not return the JWT. Browser logout is a POST mutation that clears the same cookie and redirects to `/login`, and `/profile` is guarded explicitly.
 
 B4 separates password recovery from session JWT authority. Recovery uses a 32-byte opaque random token, stores only its SHA-256 digest plus expiry, returns the same public `202` response for known and unknown emails, builds links from `APP_BASE_URL`, and consumes valid reset state atomically exactly once. Raw reset tokens are not stored in MongoDB and sensitive path/query values are redacted from request logs.
 
-If mail delivery fails, the just-created recovery digest is cleared and the public response remains non-enumerating. Reset validation occurs on the mutation, not while rendering the reset form. The maintained contract also rejects the previous password, enforces the existing password policy and persists the new password as bcrypt.
+## Maintained domain surface
+
+B5 makes the HTTP surface deliberately smaller and truthful instead of preserving generated CRUD as if it were production authority.
+
+- recovery/reset remain public under the B4 credential contract;
+- `/profile` remains session-protected;
+- products and categories expose read-only public catalog contracts;
+- hidden catalog resources are not exposed;
+- Mongo resources use ObjectId semantics;
+- product pagination/search/sort are validated and bounded;
+- global user CRUD and product/category mutations with no legitimate authority are not exposed;
+- historical cart scaffold routes are inactive;
+- ordinary user projections exclude password and password-reset state.
+
+No admin, premium, payment or transactional cart role was invented merely to keep historical endpoints alive.
 
 ## Quality commands
 
 The maintenance lane separates checks from commands that modify files:
 
 ```bash
-npm run typecheck          # deployable source contract (tsconfig.build.json)
-npm run typecheck:all      # includes historical tests; currently exposes known e2e debt
-npm run format:check       # read-only
-npm run format:write       # explicit mutation
-npm run lint               # read-only
-npm run lint:fix           # explicit mutation
+npm run typecheck
+npm run typecheck:all
+npm run format:check
+npm run format:write
+npm run lint
+npm run lint:fix
 npm run test:unit
 npm run test:e2e
-npm run quality            # blocking static local/CI contract
-npm run test:b2:runtime    # production artifact + runtime contract; requires reachable MongoDB
-npm run test:b3:auth       # auth/session production runtime contract; requires reachable MongoDB
-npm run test:b4:recovery   # password-recovery production runtime contract; requires reachable MongoDB
+npm run quality
+npm run test:b2:runtime
+npm run test:b3:auth
+npm run test:b4:recovery
+npm run test:b5:domain
 ```
 
-`npm run quality` requires hygiene, deployable-source typechecking and build to pass. It also ratchets known historical lint/unit debt so those areas may improve but may not regress. B0 began with 474 lint errors, B2 closed at 382, B3 at 182 and B4 at **141**. The B4 unit ratchet preserves 14 suites with at least 10 passing and at most 4 failing, and 33 tests with at least 29 passing and at most 4 failing.
+`npm run quality` requires hygiene, deployable-source typechecking, build, lint debt non-regression and the full unit suite. Historical lint moved from 474 errors at B0 to 382 at B2, 182 at B3, 141 at B4 and **122 at B5**.
 
-`npm run test:b2:runtime` builds the real production artifact and validates fail-fast configuration, configurable port, global DTO validation, compiled Handlebars views and compiled static assets. In GitHub Actions it runs against an isolated MongoDB service and temporarily hides the source view/static directories so accidental runtime dependencies on `src/` cannot pass unnoticed.
+B5 also repaired the last four red scaffold unit suites. The maintained unit floor is now **14/14 suites and 38/38 tests passing with zero failures**. Later blocks may add coverage but may not delete tests or reintroduce failures below that floor.
 
-`npm run test:b3:auth` builds the same production artifact and validates the cookie-only JWT authority against an isolated MongoDB service: single-hash registration, 401/409 semantics, secure cookie flags, guarded session/profile identity, POST logout, token-purpose separation and token-free auth responses.
+Runtime contracts execute the compiled production application against isolated MongoDB and cumulatively protect configuration/bootstrap (B2), browser authentication (B3), password recovery (B4) and API/domain truth (B5).
 
-`npm run test:b4:recovery` validates the recovery boundary against isolated MongoDB: non-enumerating public responses, digest-only storage, expiry, atomic single use, password hashing, stale-state cleanup and absence of raw reset tokens or test secrets from application logs.
-
-The permanent GitHub Actions workflow also runs full-project typecheck, formatting and the production dependency audit as explicit debt inventories. Their known failures remain visible until dedicated modernization blocks repair them; a green workflow does not mean that historical e2e, formatting or supply-chain debt has been erased.
+Full-project typecheck, formatting and production dependency audit remain explicit inventories until their owning blocks repair them. A green blocking workflow does not claim those inventories are already clean.
 
 Modernization evidence:
 
@@ -124,21 +138,13 @@ Modernization evidence:
 - [`docs/modernization-2026/b2-config-runtime.md`](docs/modernization-2026/b2-config-runtime.md)
 - [`docs/modernization-2026/b3-auth-authority.md`](docs/modernization-2026/b3-auth-authority.md)
 - [`docs/modernization-2026/b4-recovery-mail.md`](docs/modernization-2026/b4-recovery-mail.md)
+- [`docs/modernization-2026/b5-authority-matrix.md`](docs/modernization-2026/b5-authority-matrix.md)
 
 ## Portfolio status
 
 This repository is preserved as a **framework-specific backend learning artifact**. It is intentionally not being expanded into a new production ecommerce system just to make the repository look newer.
 
-The active 2026 maintenance lane focuses on:
-
-- dependency/runtime compatibility;
-- configuration and secret hygiene;
-- validating which tests still represent real behavior;
-- tightening API/auth boundaries where useful;
-- documenting historical versus maintained behavior;
-- avoiding duplication with the already-modernized Meow Matrix full-stack ecommerce lineage.
-
-B0–B4 established the reproducible runtime, permanent quality gates, production artifact contract, one coherent authentication authority and a non-enumerating digest-based password-recovery lifecycle. The next executable block is **B5: API/domain truth and explicit authorization**.
+B0–B5 established a reproducible Node 24 runtime, permanent quality gates, production artifact contract, coherent authentication, secure password recovery and a truthful read-oriented domain surface. The next executable block is **B6 — TypeScript and 2026 dependency ratchet**.
 
 Portfolio coordination: [`Enzopinotti/Enzopinotti#19`](https://github.com/Enzopinotti/Enzopinotti/issues/19)
 

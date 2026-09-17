@@ -8,10 +8,10 @@ const eslint = path.join(
   process.platform === 'win32' ? 'eslint.cmd' : 'eslint',
 );
 
-// B0 started at 474 errors, B2 closed at 382, B3 at 182 and B4 at 141.
-// Later blocks are not allowed to give those gains back.
+// Historical progression: B0 474 -> B2 382 -> B3 182 -> B4 141 -> B5 122.
+// Later blocks may reduce this debt, but may not give any of the gains back.
 const baseline = {
-  errors: 141,
+  errors: 122,
   warnings: 0,
 };
 
@@ -86,5 +86,5 @@ if (totals.errors < baseline.errors) {
 }
 
 console.log(
-  'Lint debt did not regress. Existing debt remains visible until later blocks reduce the baseline again.',
+  'Lint debt did not regress. Remaining debt stays visible for later blocks.',
 );
