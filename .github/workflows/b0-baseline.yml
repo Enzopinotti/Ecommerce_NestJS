@@ -1,0 +1,211 @@
+name: B0 baseline diagnostic
+
+on:
+  push:
+    branches:
+      - modernize/2026-nest-quality
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: b0-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b0
+      JWT_KEY: b0-only-not-a-secret-0123456789abcdefghijklmnopqrstuvwxyz
+      APP_BASE_URL: http://127.0.0.1:3000
+      SERVICE_MAIL: gmail
+      SERVICE_MAIL_PORT: 587
+      EMAIL_USER: b0@example.invalid
+      EMAIL_PASSWORD: b0-placeholder
+
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Record runtime identity
+        id: runtime
+        run: |
+          set -o pipefail
+          {
+            echo "head=$(git rev-parse HEAD)"
+            echo "node=$(node --version)"
+            echo "npm=$(npm --version)"
+          } | tee b0-runtime.txt
+
+      - name: Wait for Mongo TCP
+        id: mongo
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/27017) >/dev/null 2>&1; then
+              echo "Mongo TCP is reachable"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mongo TCP did not become reachable" >&2
+          exit 1
+
+      - name: Exact install from historical lock
+        id: install
+        continue-on-error: true
+        run: npm ci
+
+      - name: Full dependency audit
+        id: audit_all
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm audit
+
+      - name: Production high-severity audit
+        id: audit_prod
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Dependency outdated inventory
+        id: outdated
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm outdated
+
+      - name: Build
+        id: build
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run build
+
+      - name: ESLint read-only baseline
+        id: lint_readonly
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npx eslint "{src,apps,libs,test}/**/*.ts"
+
+      - name: Unit tests
+        id: unit
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm test -- --runInBand
+
+      - name: E2E tests against real Mongo service
+        id: e2e
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run test:e2e -- --runInBand
+
+      - name: Production-local runtime smoke
+        id: prod_smoke
+        if: always() && steps.install.outcome == 'success' && steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -u
+          rm -f b0-start-prod.log b0-login.headers b0-login.body b0-static.headers b0-static.body
+          npm run start:prod > b0-start-prod.log 2>&1 &
+          pid=$!
+          cleanup() {
+            kill "$pid" >/dev/null 2>&1 || true
+            wait "$pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for i in $(seq 1 30); do
+            if curl --silent --show-error --max-time 2 \
+              --dump-header b0-login.headers \
+              --output b0-login.body \
+              http://127.0.0.1:3000/login; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$pid" >/dev/null 2>&1; then
+              echo "start:prod exited before HTTP became reachable"
+              cat b0-start-prod.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo "HTTP never became reachable"
+            cat b0-start-prod.log
+            exit 1
+          fi
+
+          login_status=$(awk 'NR==1 {print $2}' b0-login.headers)
+          echo "login_status=$login_status"
+          if [ "$login_status" != "200" ]; then
+            cat b0-start-prod.log
+            cat b0-login.body
+            exit 1
+          fi
+
+          curl --silent --show-error --max-time 2 \
+            --dump-header b0-static.headers \
+            --output b0-static.body \
+            http://127.0.0.1:3000/css/login.css || true
+          static_status=$(awk 'NR==1 {print $2}' b0-static.headers 2>/dev/null || true)
+          echo "static_status=${static_status:-none}"
+          echo "--- start:prod log ---"
+          cat b0-start-prod.log
+
+      - name: Baseline outcome table
+        if: always()
+        run: |
+          {
+            echo "# B0 baseline diagnostic"
+            echo
+            echo "Source before diagnostic workflow: \`d3313889bf6a774e5cddf2b34685d789c9eecf00\`"
+            echo "Diagnostic commit: \`${GITHUB_SHA}\`"
+            echo
+            echo "| Check | Outcome |"
+            echo "| --- | --- |"
+            echo "| Mongo TCP | ${{ steps.mongo.outcome }} |"
+            echo "| npm ci | ${{ steps.install.outcome }} |"
+            echo "| npm audit | ${{ steps.audit_all.outcome }} |"
+            echo "| prod audit high | ${{ steps.audit_prod.outcome }} |"
+            echo "| npm outdated | ${{ steps.outdated.outcome }} |"
+            echo "| build | ${{ steps.build.outcome }} |"
+            echo "| ESLint read-only | ${{ steps.lint_readonly.outcome }} |"
+            echo "| unit | ${{ steps.unit.outcome }} |"
+            echo "| e2e | ${{ steps.e2e.outcome }} |"
+            echo "| start:prod smoke | ${{ steps.prod_smoke.outcome }} |"
+          } | tee b0-summary.md
+          cat b0-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload B0 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b0-baseline-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            b0-runtime.txt
+            b0-summary.md
+            b0-start-prod.log
+            b0-login.headers
+            b0-login.body
+            b0-static.headers
+            b0-static.body
