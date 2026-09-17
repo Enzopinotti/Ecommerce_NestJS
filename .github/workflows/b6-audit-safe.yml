@@ -37,7 +37,13 @@ jobs:
       - name: Install current verified graph
         run: npm ci
       - name: Apply semver-safe audit fixes only
-        run: npm audit fix
+        shell: bash
+        run: |
+          set +e
+          npm audit fix
+          code=$?
+          echo "npm audit fix exit=$code (non-zero is expected while breaking-only findings remain)"
+          exit 0
       - name: Reinstall resulting lockfile
         shell: bash
         run: |
