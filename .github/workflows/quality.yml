@@ -8,6 +8,7 @@ on:
     branches:
       - main
       - modernize/2026-nest-quality
+      - modernize/2026-config-runtime
   workflow_dispatch:
 
 permissions:
@@ -51,7 +52,7 @@ jobs:
       - name: Install from lockfile
         run: npm ci
 
-      - name: Blocking B1 quality contract
+      - name: Blocking static quality contract
         id: quality
         run: npm run quality
 
@@ -73,12 +74,12 @@ jobs:
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Write quality evidence summary
+      - name: Write static quality evidence summary
         if: always()
         shell: bash
         run: |
           {
-            echo "# B1 quality evidence"
+            echo "# Static quality evidence"
             echo
             echo "- SHA: \`${GITHUB_SHA}\`"
             echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
@@ -88,16 +89,77 @@ jobs:
             echo "- format debt inventory: \`${{ steps.format_debt.outcome }}\`"
             echo "- production audit inventory: \`${{ steps.audit_debt.outcome }}\`"
             echo
-            echo "The blocking B1 contract validates deployable TypeScript and ratchets the B0 lint/unit baselines instead of pretending historical debt is already fixed."
-            echo "The known e2e type error, formatting debt and dependency advisories remain explicit non-blocking inventories until their dedicated modernization blocks reduce them."
+            echo "The blocking static contract validates deployable TypeScript and ratchets the B0 lint/unit baselines."
+            echo "Known e2e type, formatting and dependency debt remains explicit until dedicated modernization blocks reduce it."
           } | tee quality-summary.md
           cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload quality evidence
+      - name: Upload static quality evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: b1-quality-${{ github.sha }}
+          name: static-quality-${{ github.sha }}
           retention-days: 30
           if-no-files-found: error
           path: quality-summary.md
+
+  b2-runtime:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci
+
+      - name: Blocking B2 production runtime contract
+        id: b2_runtime
+        env:
+          B2_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b2
+        run: npm run test:b2:runtime
+
+      - name: Write B2 runtime evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# B2 runtime evidence"
+            echo
+            echo "- SHA: \`${GITHUB_SHA}\`"
+            echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
+            echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
+            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
+            echo "- runtime contract: \`${{ steps.b2_runtime.outcome }}\`"
+            echo
+            echo "The B2 gate validates fail-fast configuration, configurable port, global DTO validation and a dist-only view/static smoke against real MongoDB."
+          } | tee b2-runtime-summary.md
+          cat b2-runtime-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload B2 runtime evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: b2-runtime-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: b2-runtime-summary.md
