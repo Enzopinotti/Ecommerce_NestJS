@@ -8,8 +8,10 @@ const eslint = path.join(
   process.platform === 'win32' ? 'eslint.cmd' : 'eslint',
 );
 
+// B0 started at 474 errors. B2 legitimately reduced that debt to 383,
+// so future blocks are not allowed to give those 91 errors back.
 const baseline = {
-  errors: 474,
+  errors: 383,
   warnings: 0,
 };
 
@@ -61,10 +63,14 @@ console.log(`fixable_errors=${totals.fixableErrors}`);
 
 const regressions = [];
 if (totals.errors > baseline.errors) {
-  regressions.push(`errors increased from baseline max ${baseline.errors} to ${totals.errors}`);
+  regressions.push(
+    `errors increased from baseline max ${baseline.errors} to ${totals.errors}`,
+  );
 }
 if (totals.warnings > baseline.warnings) {
-  regressions.push(`warnings increased from baseline max ${baseline.warnings} to ${totals.warnings}`);
+  regressions.push(
+    `warnings increased from baseline max ${baseline.warnings} to ${totals.warnings}`,
+  );
 }
 
 if (regressions.length > 0) {
@@ -74,7 +80,11 @@ if (regressions.length > 0) {
 }
 
 if (totals.errors < baseline.errors) {
-  console.log(`Improvement detected: ${baseline.errors - totals.errors} fewer lint errors than B0.`);
+  console.log(
+    `Improvement detected: ${baseline.errors - totals.errors} fewer lint errors than the current ratchet.`,
+  );
 }
 
-console.log('Lint debt did not regress. Existing debt remains visible until later blocks reduce the baseline.');
+console.log(
+  'Lint debt did not regress. Existing debt remains visible until later blocks reduce the baseline again.',
+);
