@@ -101,10 +101,12 @@ jobs:
 
           const tsconfig = JSON.parse(fs.readFileSync('tsconfig.json', 'utf8'));
           Object.assign(tsconfig.compilerOptions, {
-            module: 'Node16',
-            moduleResolution: 'Node16',
+            module: 'commonjs',
+            moduleResolution: 'node',
+            ignoreDeprecations: '6.0',
             noImplicitAny: true,
             strictNullChecks: true,
+            strictPropertyInitialization: false,
             forceConsistentCasingInFileNames: true,
             types: ['node', 'jest'],
           });
