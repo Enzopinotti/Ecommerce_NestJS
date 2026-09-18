@@ -37,7 +37,9 @@ function readString(
   }
 
   if (options.minLength && value.length < options.minLength) {
-    throw new Error(`${key} must be at least ${options.minLength} characters long`);
+    throw new Error(
+      `${key} must be at least ${options.minLength} characters long`,
+    );
   }
 
   return value;

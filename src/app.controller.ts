@@ -97,13 +97,8 @@ export class AppController {
       categoryMap[category._id.toString()] = String(category.nameCategory);
     });
 
-    const {
-      products,
-      totalPages,
-      hasNextPage,
-      hasPrevPage,
-      totalDocs,
-    } = await this.productService.findAllView(options);
+    const { products, totalPages, hasNextPage, hasPrevPage, totalDocs } =
+      await this.productService.findAllView(options);
 
     return {
       products,
@@ -124,7 +119,10 @@ export class AppController {
     };
   }
 
-  private buildProductsPageLink(page: number, options: ProductQueryDto): string {
+  private buildProductsPageLink(
+    page: number,
+    options: ProductQueryDto,
+  ): string {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(options.limit),

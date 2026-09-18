@@ -14,9 +14,9 @@ describe('ProductsController public read surface', () => {
     const product = { _id: '507f1f77bcf86cd799439011', name: 'Visible' };
     service.findOne.mockResolvedValue(product);
 
-    await expect(
-      controller.findOne('507f1f77bcf86cd799439011'),
-    ).resolves.toBe(product);
+    await expect(controller.findOne('507f1f77bcf86cd799439011')).resolves.toBe(
+      product,
+    );
     expect(service.findOne).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
   });
 });

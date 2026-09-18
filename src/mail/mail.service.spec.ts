@@ -23,9 +23,11 @@ describe('MailService', () => {
   });
 
   it('uses an explicitly injected test transport without exposing provider errors', async () => {
-    const sendMail = jest.fn().mockRejectedValue(
-      new Error('smtp://user:secret-password@provider.example'),
-    );
+    const sendMail = jest
+      .fn()
+      .mockRejectedValue(
+        new Error('smtp://user:secret-password@provider.example'),
+      );
     const transportFactory: MailTransportFactory = jest
       .fn()
       .mockReturnValue({ sendMail });

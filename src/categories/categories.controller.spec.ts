@@ -7,7 +7,9 @@ describe('CategoriesController public read surface', () => {
 
   beforeEach(() => {
     service = { findAll: jest.fn(), findOne: jest.fn() };
-    controller = new CategoriesController(service as unknown as CategoriesService);
+    controller = new CategoriesController(
+      service as unknown as CategoriesService,
+    );
   });
 
   it('delegates visible category listing', async () => {
@@ -21,8 +23,8 @@ describe('CategoriesController public read surface', () => {
     const category = { _id: '507f1f77bcf86cd799439011' };
     service.findOne.mockResolvedValue(category);
 
-    await expect(
-      controller.findOne('507f1f77bcf86cd799439011'),
-    ).resolves.toBe(category);
+    await expect(controller.findOne('507f1f77bcf86cd799439011')).resolves.toBe(
+      category,
+    );
   });
 });

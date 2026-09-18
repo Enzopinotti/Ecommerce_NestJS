@@ -21,7 +21,9 @@ describe('AppController auth-facing views', () => {
     controller = new AppController(
       {} as unknown as ProductsService,
       {} as unknown as CategoriesService,
-      { get: jest.fn().mockReturnValue('production') } as unknown as ConfigService,
+      {
+        get: jest.fn().mockReturnValue('production'),
+      } as unknown as ConfigService,
     );
   });
 

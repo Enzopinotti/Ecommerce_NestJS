@@ -68,7 +68,9 @@ describe('UsersService recovery persistence', () => {
       expect.objectContaining({
         _id: '507f1f77bcf86cd799439011',
         resetPasswordTokenDigest: 'b'.repeat(64),
-        resetPasswordExpires: expect.objectContaining({ $gt: expect.any(Date) }),
+        resetPasswordExpires: expect.objectContaining({
+          $gt: expect.any(Date),
+        }),
       }),
     );
     expect(update).toEqual({

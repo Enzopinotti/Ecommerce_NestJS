@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { MailService } from '../mail/mail.service';
@@ -60,7 +56,8 @@ export class PasswordRecoveryService {
 
   async resetPassword(rawToken: string, password: string): Promise<void> {
     const tokenDigest = this.digestToken(rawToken);
-    const user = await this.usersService.findPasswordResetCandidate(tokenDigest);
+    const user =
+      await this.usersService.findPasswordResetCandidate(tokenDigest);
 
     if (!user || !user.resetPasswordExpires) {
       throw new BadRequestException('Invalid or expired recovery token');

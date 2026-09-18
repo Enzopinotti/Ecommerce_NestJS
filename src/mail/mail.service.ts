@@ -25,7 +25,8 @@ export class MailService {
     @Inject(MAIL_TRANSPORT_FACTORY)
     transportFactory?: MailTransportFactory,
   ) {
-    const mailEnabled = this.configService.get<boolean>('MAIL_ENABLED') ?? false;
+    const mailEnabled =
+      this.configService.get<boolean>('MAIL_ENABLED') ?? false;
 
     if (!mailEnabled) {
       this.transporter = null;

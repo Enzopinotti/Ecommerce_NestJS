@@ -11,15 +11,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       {
         name: Category.name,
         schema: CategorySchema,
-      }
+      },
     ]),
-    ConfigModule
+    ConfigModule,
   ],
   controllers: [CategoriesController],
-  providers: [
-    CategoriesService,
-    ConfigService,
-  ],
-  exports: [CategoriesService]
+  providers: [CategoriesService, ConfigService],
+  exports: [CategoriesService],
 })
 export class CategoriesModule {}
