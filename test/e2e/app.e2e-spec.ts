@@ -63,10 +63,13 @@ describe('Application e2e contracts', () => {
 
     expect(login.status).toBe(200);
     expect(login.body).not.toHaveProperty('token');
-    const setCookie = login.headers['set-cookie'] ?? [];
-    expect(setCookie.join(';')).toContain('access_token=');
-    expect(setCookie.join(';')).toContain('HttpOnly');
-    expect(setCookie.join(';')).toContain('SameSite=Lax');
+    const rawSetCookie = login.headers['set-cookie'];
+    const setCookie = Array.isArray(rawSetCookie)
+      ? rawSetCookie.join(';')
+      : String(rawSetCookie ?? '');
+    expect(setCookie).toContain('access_token=');
+    expect(setCookie).toContain('HttpOnly');
+    expect(setCookie).toContain('SameSite=Lax');
 
     await agent.get('/auth/session').expect(200);
     await agent.get('/profile').expect(200);
