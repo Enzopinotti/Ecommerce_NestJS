@@ -1,0 +1,76 @@
+name: B7 lint normalization
+
+on:
+  push:
+    branches:
+      - modernize/2026-test-architecture
+    paths:
+      - .github/workflows/b7-lint-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  lint-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Apply only ESLint-declared safe fixes
+        shell: bash
+        run: |
+          set +e
+          npm run lint:fix
+          echo "lint:fix exit=$?"
+          exit 0
+      - name: Keep Prettier contract clean
+        run: npm run format:check
+      - name: Report remaining semantic lint findings
+        shell: bash
+        run: |
+          set +e
+          npx eslint "{src,apps,libs,test}/**/*.ts" --format json > b7-lint-report.json
+          exit_code=$?
+          node <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('b7-lint-report.json', 'utf8'));
+          let errors = 0;
+          for (const file of report) {
+            const messages = (file.messages ?? []).filter((item) => item.severity === 2);
+            if (!messages.length) continue;
+            console.log(file.filePath);
+            for (const item of messages) {
+              errors += 1;
+              console.log(`  ${item.line}:${item.column} ${item.ruleId ?? 'unknown'} — ${item.message}`);
+            }
+          }
+          console.log(`remaining_errors=${errors}`);
+          NODE
+          echo "eslint exit=$exit_code"
+          exit 0
+      - name: Commit safe lint fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "Enzo Pinotti"
+          git config user.email "enzopinottii@gmail.com"
+          git add src test
+          if git diff --cached --quiet; then
+            echo "No safe lint fixes to commit."
+            exit 0
+          fi
+          git commit -m "B7: apply safe ESLint fixes"
+          git fetch origin modernize/2026-test-architecture
+          git rebase origin/modernize/2026-test-architecture
+          git push origin HEAD:modernize/2026-test-architecture
