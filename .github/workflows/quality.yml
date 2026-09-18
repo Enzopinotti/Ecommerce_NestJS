@@ -13,6 +13,7 @@ on:
       - modernize/2026-recovery-mail
       - modernize/2026-domain-truth
       - modernize/2026-ts-dependencies
+      - modernize/2026-final-test-ci
   workflow_dispatch:
 
 permissions:
@@ -283,3 +284,56 @@ jobs:
           retention-days: 30
           if-no-files-found: error
           path: b5-domain-summary.md
+
+  b7-integration-e2e:
+    needs: b5-domain-runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b7
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Blocking Mongo integration suite
+        id: integration
+        run: npm run test:integration
+      - name: Blocking HTTP/rendering e2e suite
+        id: e2e
+        run: npm run test:e2e
+      - name: Write B7 suite evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# B7 integration/e2e evidence"
+            echo "- SHA: `${GITHUB_SHA}`"
+            echo "- Mongo image: `mongo:7.0.43-jammy`"
+            echo "- integration: `${{ steps.integration.outcome }}`"
+            echo "- e2e: `${{ steps.e2e.outcome }}`"
+          } | tee b7-suite-summary.md
+          cat b7-suite-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload B7 suite evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: b7-suite-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: b7-suite-summary.md

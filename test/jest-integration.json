@@ -6,7 +6,7 @@
   ],
   "rootDir": "..",
   "testEnvironment": "node",
-  "testRegex": "test/e2e/.*[.]e2e-spec[.]ts$",
+  "testRegex": "test/integration/.*[.]integration-spec[.]ts$",
   "setupFiles": [
     "<rootDir>/test/setup-test-env.ts"
   ],
