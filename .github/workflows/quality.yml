@@ -7,13 +7,7 @@ on:
   push:
     branches:
       - main
-      - modernize/2026-nest-quality
-      - modernize/2026-config-runtime
-      - modernize/2026-auth-authority
-      - modernize/2026-recovery-mail
-      - modernize/2026-domain-truth
-      - modernize/2026-ts-dependencies
-      - modernize/2026-final-test-ci
+      - 'modernize/2026-*'
   workflow_dispatch:
 
 permissions:
@@ -26,7 +20,7 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -56,19 +50,18 @@ jobs:
       - name: Blocking production dependency audit
         id: audit_prod
         run: npm run audit:prod
-      - name: Write static quality evidence summary
+      - name: Write static quality evidence
         if: always()
         shell: bash
         run: |
           {
             echo "# Static quality evidence"
-            echo "- SHA: \`${GITHUB_SHA}\`"
-            echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
-            echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
-            echo "- blocking quality: \`${{ steps.quality.outcome }}\`"
-            echo "- full-project typecheck: \`blocking inside npm run quality\`"
-            echo "- formatting: \`blocking inside npm run quality\`"
-            echo "- production audit high: \`${{ steps.audit_prod.outcome }}\`"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo "- Node: $(node --version 2>/dev/null || echo unavailable)"
+            echo "- npm: $(npm --version 2>/dev/null || echo unavailable)"
+            echo "- quality: ${{ steps.quality.outcome }}"
+            echo "- production audit high: ${{ steps.audit_prod.outcome }}"
+            echo "- contract: full typecheck + build + lint + format + unit + clean tree"
           } | tee quality-summary.md
           cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload static quality evidence
@@ -80,210 +73,10 @@ jobs:
           if-no-files-found: error
           path: quality-summary.md
 
-  b2-runtime:
+  runtime-tests:
     needs: quality
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      mongo:
-        image: mongo:7.0.43-jammy
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-    steps:
-      - name: Checkout exact commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Setup pinned Node runtime
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install from lockfile
-        run: npm ci
-      - name: Blocking B2 production runtime contract
-        id: b2_runtime
-        env:
-          B2_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b2
-        run: npm run test:b2:runtime
-      - name: Write B2 runtime evidence summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "# B2 runtime evidence"
-            echo "- SHA: \`${GITHUB_SHA}\`"
-            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
-            echo "- runtime contract: \`${{ steps.b2_runtime.outcome }}\`"
-          } | tee b2-runtime-summary.md
-          cat b2-runtime-summary.md >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload B2 runtime evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: b2-runtime-${{ github.sha }}
-          retention-days: 30
-          if-no-files-found: error
-          path: b2-runtime-summary.md
-
-  b3-auth-runtime:
-    needs: b2-runtime
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      mongo:
-        image: mongo:7.0.43-jammy
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-    steps:
-      - name: Checkout exact commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Setup pinned Node runtime
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install from lockfile
-        run: npm ci
-      - name: Blocking B3 authentication contract
-        id: b3_auth
-        env:
-          B3_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b3
-        run: npm run test:b3:auth
-      - name: Write B3 auth evidence summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "# B3 authentication evidence"
-            echo "- SHA: \`${GITHUB_SHA}\`"
-            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
-            echo "- auth contract: \`${{ steps.b3_auth.outcome }}\`"
-          } | tee b3-auth-summary.md
-          cat b3-auth-summary.md >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload B3 auth evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: b3-auth-${{ github.sha }}
-          retention-days: 30
-          if-no-files-found: error
-          path: b3-auth-summary.md
-
-  b4-recovery-runtime:
-    needs: b3-auth-runtime
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      mongo:
-        image: mongo:7.0.43-jammy
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-    steps:
-      - name: Checkout exact commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Setup pinned Node runtime
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install from lockfile
-        run: npm ci
-      - name: Blocking B4 recovery contract
-        id: b4_recovery
-        env:
-          B4_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b4
-        run: npm run test:b4:recovery
-      - name: Write B4 recovery evidence summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "# B4 recovery evidence"
-            echo "- SHA: \`${GITHUB_SHA}\`"
-            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
-            echo "- recovery contract: \`${{ steps.b4_recovery.outcome }}\`"
-          } | tee b4-recovery-summary.md
-          cat b4-recovery-summary.md >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload B4 recovery evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: b4-recovery-${{ github.sha }}
-          retention-days: 30
-          if-no-files-found: error
-          path: b4-recovery-summary.md
-
-  b5-domain-runtime:
-    needs: b4-recovery-runtime
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      mongo:
-        image: mongo:7.0.43-jammy
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-    steps:
-      - name: Checkout exact commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Setup pinned Node runtime
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - name: Install from lockfile
-        run: npm ci
-      - name: Blocking B5 domain truth contract
-        id: b5_domain
-        env:
-          B5_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b5
-        run: npm run test:b5:domain
-      - name: Write B5 domain evidence summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "# B5 domain truth evidence"
-            echo "- SHA: \`${GITHUB_SHA}\`"
-            echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
-            echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
-            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
-            echo "- domain contract: \`${{ steps.b5_domain.outcome }}\`"
-            echo
-            echo "The B5 gate validates truthful public endpoints, ObjectId semantics, visible-only catalog reads, bounded product queries and inactive historical cart/user-admin scaffolding."
-          } | tee b5-domain-summary.md
-          cat b5-domain-summary.md >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload B5 domain evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: b5-domain-${{ github.sha }}
-          retention-days: 30
-          if-no-files-found: error
-          path: b5-domain-summary.md
-
-  b7-integration-e2e:
-    needs: b5-domain-runtime
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     services:
       mongo:
         image: mongo:7.0.43-jammy
@@ -295,6 +88,10 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
+      B2_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b2
+      B3_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b3
+      B4_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b4
+      B5_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b5
       TEST_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b7
     steps:
       - name: Checkout exact commit
@@ -306,29 +103,45 @@ jobs:
           cache: npm
       - name: Install from lockfile
         run: npm ci
-      - name: Blocking Mongo integration suite
+      - name: Production build/runtime smoke
+        id: b2
+        run: npm run test:b2:runtime
+      - name: Authentication runtime regression
+        id: b3
+        run: npm run test:b3:auth
+      - name: Recovery runtime regression
+        id: b4
+        run: npm run test:b4:recovery
+      - name: Domain runtime regression
+        id: b5
+        run: npm run test:b5:domain
+      - name: Mongo integration suite
         id: integration
         run: npm run test:integration
-      - name: Blocking HTTP/rendering e2e suite
+      - name: HTTP and rendering e2e suite
         id: e2e
         run: npm run test:e2e
-      - name: Write B7 suite evidence summary
+      - name: Write runtime and test evidence
         if: always()
         shell: bash
         run: |
           {
-            echo "# B7 integration/e2e evidence"
-            echo "- SHA: `${GITHUB_SHA}`"
-            echo "- Mongo image: `mongo:7.0.43-jammy`"
-            echo "- integration: `${{ steps.integration.outcome }}`"
-            echo "- e2e: `${{ steps.e2e.outcome }}`"
-          } | tee b7-suite-summary.md
-          cat b7-suite-summary.md >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload B7 suite evidence
+            echo "# Runtime and test evidence"
+            echo "- SHA: ${GITHUB_SHA}"
+            echo "- Mongo image: mongo:7.0.43-jammy"
+            echo "- production smoke: ${{ steps.b2.outcome }}"
+            echo "- auth regression: ${{ steps.b3.outcome }}"
+            echo "- recovery regression: ${{ steps.b4.outcome }}"
+            echo "- domain regression: ${{ steps.b5.outcome }}"
+            echo "- integration: ${{ steps.integration.outcome }}"
+            echo "- e2e: ${{ steps.e2e.outcome }}"
+          } | tee runtime-tests-summary.md
+          cat runtime-tests-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload runtime and test evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: b7-suite-${{ github.sha }}
+          name: runtime-tests-${{ github.sha }}
           retention-days: 30
           if-no-files-found: error
-          path: b7-suite-summary.md
+          path: runtime-tests-summary.md

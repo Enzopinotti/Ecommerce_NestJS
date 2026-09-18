@@ -124,13 +124,13 @@ npm run test:b5:domain
 npm run audit:prod
 ```
 
-`npm run quality` requires hygiene, deployable-source and full-project typechecking, build, lint debt non-regression and the full unit suite. Historical lint moved from 474 errors at B0 to 382 at B2, 182 at B3, 141 at B4, 122 at B5 and **105 at B6**.
+`npm run quality` requires hygiene, deployable-source and full-project typechecking, build, **zero lint errors**, a clean Prettier check, the full unit suite and an unchanged working tree. Historical lint moved from 474 errors at B0 to 382 at B2, 182 at B3, 141 at B4, 122 at B5, 105 at B6 and **0 at B7**.
 
-B5 also repaired the last four red scaffold unit suites. The maintained unit floor is now **14/14 suites and 38/38 tests passing with zero failures**. Later blocks may add coverage but may not delete tests or reintroduce failures below that floor.
+B5 repaired the last red scaffold unit suites. B7 adds permanent Mongo integration and HTTP/rendering E2E layers. The maintained floors are now **14/14 unit suites and 38/38 unit tests**, **3/3 integration tests**, and **5/5 E2E tests**, all with zero failures.
 
-Runtime contracts execute the compiled production application against isolated MongoDB and cumulatively protect configuration/bootstrap (B2), browser authentication (B3), password recovery (B4) and API/domain truth (B5).
+Runtime contracts execute the compiled production application against isolated MongoDB and cumulatively protect configuration/bootstrap (B2), browser authentication (B3), password recovery (B4) and API/domain truth (B5). B7 keeps those regressions and adds service-level Mongo integration plus in-process HTTP/rendering E2E.
 
-B6 promoted full-project typecheck and the production `high` dependency audit to blocking contracts. `npm run audit:prod` must pass; formatting remains an explicit debt inventory for the next quality block rather than being hidden behind a mass autofix.
+B6 promoted full-project typecheck and the production `high` dependency audit to blocking contracts. B7 also promotes lint and formatting to blocking contracts; there is no remaining tolerated lint/format debt.
 
 Modernization evidence:
 
@@ -141,12 +141,13 @@ Modernization evidence:
 - [`docs/modernization-2026/b4-recovery-mail.md`](docs/modernization-2026/b4-recovery-mail.md)
 - [`docs/modernization-2026/b5-authority-matrix.md`](docs/modernization-2026/b5-authority-matrix.md)
 - [`docs/modernization-2026/b6-typescript-dependencies.md`](docs/modernization-2026/b6-typescript-dependencies.md)
+- [`docs/modernization-2026/b7-test-ci.md`](docs/modernization-2026/b7-test-ci.md)
 
 ## Portfolio status
 
 This repository is preserved as a **framework-specific backend learning artifact**. It is intentionally not being expanded into a new production ecommerce system just to make the repository look newer.
 
-B0–B6 established a reproducible Node 24 runtime, permanent quality gates, production artifact contract, coherent authentication, secure password recovery, a truthful read-oriented domain surface, full-project TypeScript checking and a security-ratcheted 2026 dependency baseline. The next executable block is **B7 — permanent unit/integration/e2e suite + final CI**.
+B0–B7 established a reproducible Node 24 runtime, blocking static/security gates, production artifact contract, coherent authentication, secure password recovery, a truthful read-oriented domain surface, TypeScript/dependency modernization, and permanent unit/integration/E2E CI. The next executable block is **B8 — documentation, review and verifiable merge closure**.
 
 Portfolio coordination: [`Enzopinotti/Enzopinotti#19`](https://github.com/Enzopinotti/Enzopinotti/issues/19)
 
