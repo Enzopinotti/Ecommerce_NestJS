@@ -35,6 +35,6 @@
     "node_modules/(?!@nestjs/)"
   ],
   "testMatch": [
-    "<rootDir>/test/**/*.e2e-spec.ts"
+    "<rootDir>/test/integration/**/*.integration-spec.ts"
   ]
 }

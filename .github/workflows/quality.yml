@@ -13,6 +13,7 @@ on:
       - modernize/2026-recovery-mail
       - modernize/2026-domain-truth
       - modernize/2026-ts-dependencies
+      - modernize/2026-test-architecture
   workflow_dispatch:
 
 permissions:
@@ -283,3 +284,104 @@ jobs:
           retention-days: 30
           if-no-files-found: error
           path: b5-domain-summary.md
+
+  integration:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Blocking Mongo integration suite
+        id: integration
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_integration
+        run: npm run test:integration
+      - name: Write integration evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# B7 integration evidence"
+            echo "- SHA: \`${GITHUB_SHA}\`"
+            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
+            echo "- integration suite: \`${{ steps.integration.outcome }}\`"
+          } | tee integration-summary.md
+          cat integration-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload integration evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: b7-integration-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: integration-summary.md
+
+  e2e:
+    needs:
+      - integration
+      - b5-domain-runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Blocking current-product e2e suite
+        id: e2e
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_e2e
+        run: npm run test:e2e
+      - name: Write e2e evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# B7 e2e evidence"
+            echo "- SHA: \`${GITHUB_SHA}\`"
+            echo "- Mongo image: \`mongo:7.0.43-jammy\`"
+            echo "- e2e suite: \`${{ steps.e2e.outcome }}\`"
+            echo "- product contracts: redirect/rendering + auth + catalog + recovery"
+          } | tee e2e-summary.md
+          cat e2e-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload e2e evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: b7-e2e-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: error
+          path: e2e-summary.md
