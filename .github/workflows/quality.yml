@@ -56,11 +56,6 @@ jobs:
       - name: Blocking production dependency audit
         id: audit_prod
         run: npm run audit:prod
-      - name: Formatting debt inventory
-        id: format_debt
-        if: always()
-        continue-on-error: true
-        run: npm run format:check
       - name: Write static quality evidence summary
         if: always()
         shell: bash
@@ -72,7 +67,7 @@ jobs:
             echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
             echo "- blocking quality: \`${{ steps.quality.outcome }}\`"
             echo "- full-project typecheck: \`blocking inside npm run quality\`"
-            echo "- format debt inventory: \`${{ steps.format_debt.outcome }}\`"
+            echo "- formatting: \`blocking inside npm run quality\`"
             echo "- production audit high: \`${{ steps.audit_prod.outcome }}\`"
           } | tee quality-summary.md
           cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
