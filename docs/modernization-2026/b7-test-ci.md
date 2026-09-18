@@ -109,11 +109,11 @@ The old lint-debt ratchet script was removed.
 
 ## Permanent CI
 
-The final workflow has two jobs and runs on pull requests to `main`, pushes to `main`, and modernization branches.
+The final workflow has two jobs and runs on pull requests to `main`, pushes to `main`, and modernization branches. Pull-request jobs explicitly checkout the PR head SHA rather than GitHub's synthetic merge ref, and verify `git rev-parse HEAD` against that candidate SHA.
 
 ### quality
 
-1. exact checkout;
+1. explicit candidate checkout (`pull_request.head.sha` on PRs, `github.sha` on pushes);
 2. Node/npm identity verification;
 3. `npm ci`;
 4. hygiene;

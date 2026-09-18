@@ -85,7 +85,7 @@ The maintained repository documents:
 
 ## CI authority before merge
 
-The permanent workflow must be green on the exact pull-request HEAD.
+The permanent workflow must be green on the exact pull-request HEAD. B8 explicitly verifies this by checking out `github.event.pull_request.head.sha` for PR events and asserting `git rev-parse HEAD` equals the candidate SHA; GitHub's synthetic PR merge ref is not accepted as a substitute.
 
 ### quality
 
