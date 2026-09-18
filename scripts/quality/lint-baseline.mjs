@@ -8,10 +8,10 @@ const eslint = path.join(
   process.platform === 'win32' ? 'eslint.cmd' : 'eslint',
 );
 
-// Historical progression: B0 474 -> B2 382 -> B3 182 -> B4 141 -> B5 122.
+// Historical progression: B0 474 -> B2 382 -> B3 182 -> B4 141 -> B5 122 -> B6 105.
 // Later blocks may reduce this debt, but may not give any of the gains back.
 const baseline = {
-  errors: 122,
+  errors: 105,
   warnings: 0,
 };
 

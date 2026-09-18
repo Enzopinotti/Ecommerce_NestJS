@@ -52,21 +52,14 @@ jobs:
       - name: Blocking static quality contract
         id: quality
         run: npm run quality
-      - name: Full-project typecheck debt inventory
-        id: typecheck_all_debt
-        if: always()
-        continue-on-error: true
-        run: npm run typecheck:all
+      - name: Blocking production dependency audit
+        id: audit_prod
+        run: npm run audit:prod
       - name: Formatting debt inventory
         id: format_debt
         if: always()
         continue-on-error: true
         run: npm run format:check
-      - name: Production dependency audit inventory
-        id: audit_debt
-        if: always()
-        continue-on-error: true
-        run: npm audit --omit=dev --audit-level=high
       - name: Write static quality evidence summary
         if: always()
         shell: bash
@@ -77,9 +70,9 @@ jobs:
             echo "- Node: \`$(node --version 2>/dev/null || echo unavailable)\`"
             echo "- npm: \`$(npm --version 2>/dev/null || echo unavailable)\`"
             echo "- blocking quality: \`${{ steps.quality.outcome }}\`"
-            echo "- full-project typecheck debt: \`${{ steps.typecheck_all_debt.outcome }}\`"
+            echo "- full-project typecheck: \`blocking inside npm run quality\`"
             echo "- format debt inventory: \`${{ steps.format_debt.outcome }}\`"
-            echo "- production audit inventory: \`${{ steps.audit_debt.outcome }}\`"
+            echo "- production audit high: \`${{ steps.audit_prod.outcome }}\`"
           } | tee quality-summary.md
           cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload static quality evidence

@@ -6,8 +6,8 @@ The repository started from the Nest starter, but the application grew beyond th
 
 ## Stack
 
-- NestJS 10
-- TypeScript
+- NestJS 12
+- TypeScript 5.9.3
 - MongoDB + Mongoose
 - JWT / Passport
 - bcrypt
@@ -121,15 +121,16 @@ npm run test:b2:runtime
 npm run test:b3:auth
 npm run test:b4:recovery
 npm run test:b5:domain
+npm run audit:prod
 ```
 
-`npm run quality` requires hygiene, deployable-source typechecking, build, lint debt non-regression and the full unit suite. Historical lint moved from 474 errors at B0 to 382 at B2, 182 at B3, 141 at B4 and **122 at B5**.
+`npm run quality` requires hygiene, deployable-source and full-project typechecking, build, lint debt non-regression and the full unit suite. Historical lint moved from 474 errors at B0 to 382 at B2, 182 at B3, 141 at B4, 122 at B5 and **105 at B6**.
 
 B5 also repaired the last four red scaffold unit suites. The maintained unit floor is now **14/14 suites and 38/38 tests passing with zero failures**. Later blocks may add coverage but may not delete tests or reintroduce failures below that floor.
 
 Runtime contracts execute the compiled production application against isolated MongoDB and cumulatively protect configuration/bootstrap (B2), browser authentication (B3), password recovery (B4) and API/domain truth (B5).
 
-Full-project typecheck, formatting and production dependency audit remain explicit inventories until their owning blocks repair them. A green blocking workflow does not claim those inventories are already clean.
+B6 promoted full-project typecheck and the production `high` dependency audit to blocking contracts. `npm run audit:prod` must pass; formatting remains an explicit debt inventory for the next quality block rather than being hidden behind a mass autofix.
 
 Modernization evidence:
 
@@ -139,12 +140,13 @@ Modernization evidence:
 - [`docs/modernization-2026/b3-auth-authority.md`](docs/modernization-2026/b3-auth-authority.md)
 - [`docs/modernization-2026/b4-recovery-mail.md`](docs/modernization-2026/b4-recovery-mail.md)
 - [`docs/modernization-2026/b5-authority-matrix.md`](docs/modernization-2026/b5-authority-matrix.md)
+- [`docs/modernization-2026/b6-typescript-dependencies.md`](docs/modernization-2026/b6-typescript-dependencies.md)
 
 ## Portfolio status
 
 This repository is preserved as a **framework-specific backend learning artifact**. It is intentionally not being expanded into a new production ecommerce system just to make the repository look newer.
 
-B0–B5 established a reproducible Node 24 runtime, permanent quality gates, production artifact contract, coherent authentication, secure password recovery and a truthful read-oriented domain surface. The next executable block is **B6 — TypeScript and 2026 dependency ratchet**.
+B0–B6 established a reproducible Node 24 runtime, permanent quality gates, production artifact contract, coherent authentication, secure password recovery, a truthful read-oriented domain surface, full-project TypeScript checking and a security-ratcheted 2026 dependency baseline. The next executable block is **B7 — permanent unit/integration/e2e suite + final CI**.
 
 Portfolio coordination: [`Enzopinotti/Enzopinotti#19`](https://github.com/Enzopinotti/Enzopinotti/issues/19)
 

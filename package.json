@@ -36,7 +36,8 @@
     "quality:hygiene": "node scripts/quality/hygiene.mjs",
     "quality:lint-baseline": "node scripts/quality/lint-baseline.mjs",
     "quality:unit-baseline": "node scripts/quality/unit-baseline.mjs",
-    "quality": "npm run quality:hygiene && npm run typecheck && npm run build && npm run quality:lint-baseline && npm run quality:unit-baseline && git diff --exit-code"
+    "quality": "npm run quality:hygiene && npm run typecheck && npm run typecheck:all && npm run build && npm run quality:lint-baseline && npm run quality:unit-baseline && git diff --exit-code",
+    "audit:prod": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
     "@nestjs/common": "12.0.3",
