@@ -1,0 +1,157 @@
+name: Quality
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      - 'modernize/2026-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Verify toolchain identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_node="$(tr -d '\r\n' < .nvmrc)"
+          actual_node="$(node --version)"
+          expected_npm="$(node -p "require('./package.json').packageManager.split('@')[1]")"
+          actual_npm="$(npm --version)"
+          printf 'node=%s\n' "$actual_node"
+          printf 'npm=%s\n' "$actual_npm"
+          actual_git_sha="$(git rev-parse HEAD)"
+          printf 'candidate_sha=%s\n' "$CANDIDATE_SHA"
+          printf 'checked_out_sha=%s\n' "$actual_git_sha"
+          test "$actual_git_sha" = "$CANDIDATE_SHA"
+          test "$actual_node" = "$expected_node"
+          test "$actual_npm" = "$expected_npm"
+      - name: Install from lockfile
+        run: npm ci
+      - name: Blocking static quality contract
+        id: quality
+        run: npm run quality
+      - name: Blocking production dependency audit
+        id: audit_prod
+        run: npm run audit:prod
+      - name: Write static quality evidence
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# Static quality evidence"
+            echo "- candidate SHA: ${CANDIDATE_SHA}"
+            echo "- Node: $(node --version 2>/dev/null || echo unavailable)"
+            echo "- npm: $(npm --version 2>/dev/null || echo unavailable)"
+            echo "- quality: ${{ steps.quality.outcome }}"
+            echo "- production audit high: ${{ steps.audit_prod.outcome }}"
+            echo "- contract: full typecheck + build + lint + format + unit + clean tree"
+          } | tee quality-summary.md
+          cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload static quality evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: static-quality-${{ env.CANDIDATE_SHA }}
+          retention-days: 30
+          if-no-files-found: error
+          path: quality-summary.md
+
+  runtime-tests:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      mongo:
+        image: mongo:7.0.43-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      B2_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b2
+      B3_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b3
+      B4_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b4
+      B5_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b5
+      TEST_MONGODB_URI: mongodb://127.0.0.1:27017/ecommerce_nestjs_b7
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+      - name: Setup pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Production build/runtime smoke
+        id: b2
+        run: npm run test:b2:runtime
+      - name: Authentication runtime regression
+        id: b3
+        run: npm run test:b3:auth
+      - name: Recovery runtime regression
+        id: b4
+        run: npm run test:b4:recovery
+      - name: Domain runtime regression
+        id: b5
+        run: npm run test:b5:domain
+      - name: Mongo integration suite
+        id: integration
+        run: npm run test:integration
+      - name: HTTP and rendering e2e suite
+        id: e2e
+        run: npm run test:e2e
+      - name: Write runtime and test evidence
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# Runtime and test evidence"
+            echo "- candidate SHA: ${CANDIDATE_SHA}"
+            echo "- Mongo image: mongo:7.0.43-jammy"
+            echo "- production smoke: ${{ steps.b2.outcome }}"
+            echo "- auth regression: ${{ steps.b3.outcome }}"
+            echo "- recovery regression: ${{ steps.b4.outcome }}"
+            echo "- domain regression: ${{ steps.b5.outcome }}"
+            echo "- integration: ${{ steps.integration.outcome }}"
+            echo "- e2e: ${{ steps.e2e.outcome }}"
+          } | tee runtime-tests-summary.md
+          cat runtime-tests-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload runtime and test evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: runtime-tests-${{ env.CANDIDATE_SHA }}
+          retention-days: 30
+          if-no-files-found: error
+          path: runtime-tests-summary.md

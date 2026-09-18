@@ -1,6 +1,15 @@
+import { Allow } from 'class-validator';
+
 export class CreateCategoryDto {
-    nameCategory: string;
-    isVisible: boolean;
-    createdAt: Date;
-    description: string;
+  @Allow()
+  nameCategory: string;
+
+  @Allow()
+  isVisible: boolean;
+
+  @Allow()
+  createdAt: Date;
+
+  @Allow()
+  description: string;
 }

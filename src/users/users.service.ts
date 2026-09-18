@@ -1,45 +1,109 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { hashPassword } from '../utils/encryption.util';
+import { CreateUserDto } from './dto/create-user.dto';
 import { User, UserDocument } from './schema/users.schema';
-import { Model } from 'mongoose';
-import { hashPassword } from 'src/utils/encryption.util';
 
 @Injectable()
-export class  UsersService {
-
-  constructor(@InjectModel(User.name) private userModel: Model <UserDocument> ) {}
+export class UsersService {
+  constructor(
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { email, password, ...rest } = createUserDto; // Extrae la contraseña del DTO
-    const hashedPassword = await hashPassword(password);
-    const newUser = new this.userModel({ email, password: hashedPassword, ...rest }); // Cifra la contraseña
-    return this.userModel.create(newUser);;
+    const { email, password, ...rest } = createUserDto;
+    const hashedPassword = await hashPassword(String(password));
+    return this.userModel.create({
+      email: String(email),
+      password: hashedPassword,
+      ...rest,
+    });
   }
 
-  findAll(limit) {
-    return this.userModel.find();
+  findByEmail(email: string) {
+    return this.userModel.findOne({ email }).exec();
   }
 
-  findOne(id: string) {
-    return this.userModel.findById(id);
+  findByEmailForAuthentication(email: string) {
+    return this.userModel.findOne({ email }).select('+password').exec();
   }
 
-  findByEmail(email: String) {
-    return this.userModel.findOne({ email });
+  findAuthIdentityById(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      return null;
+    }
+
+    return this.userModel
+      .findById(id)
+      .select('_id email first_name last_name')
+      .exec();
   }
 
-  findByToken (token: string) {
-    console.log(token)
-    return this.userModel.findOne({ resetPasswordToken: token });
+  async setPasswordResetDigest(
+    id: string,
+    tokenDigest: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.userModel
+      .updateOne(
+        { _id: id },
+        {
+          $set: {
+            resetPasswordTokenDigest: tokenDigest,
+            resetPasswordExpires: expiresAt,
+          },
+        },
+      )
+      .exec();
   }
 
-  update(id: string, updateUserDto: UpdateUserDto) {
-    return this.userModel.updateOne( { '_id':id }, updateUserDto );
+  findPasswordResetCandidate(tokenDigest: string) {
+    return this.userModel
+      .findOne({ resetPasswordTokenDigest: tokenDigest })
+      .select('+password +resetPasswordExpires')
+      .exec();
   }
 
-  remove(id: string) {
-    return this.userModel.deleteOne( { '_id':id } );
+  async clearPasswordResetDigest(
+    id: string,
+    tokenDigest: string,
+  ): Promise<void> {
+    await this.userModel
+      .updateOne(
+        { _id: id, resetPasswordTokenDigest: tokenDigest },
+        {
+          $unset: {
+            resetPasswordTokenDigest: 1,
+            resetPasswordExpires: 1,
+          },
+        },
+      )
+      .exec();
+  }
+
+  async consumePasswordReset(
+    id: string,
+    tokenDigest: string,
+    passwordHash: string,
+  ): Promise<boolean> {
+    const result = await this.userModel
+      .updateOne(
+        {
+          _id: id,
+          resetPasswordTokenDigest: tokenDigest,
+          resetPasswordExpires: { $gt: new Date() },
+        },
+        {
+          $set: { password: passwordHash },
+          $unset: {
+            resetPasswordTokenDigest: 1,
+            resetPasswordExpires: 1,
+          },
+        },
+      )
+      .exec();
+
+    return result.modifiedCount === 1;
   }
 }

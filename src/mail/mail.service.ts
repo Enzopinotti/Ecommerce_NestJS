@@ -1,36 +1,69 @@
-import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
+import {
+  MAIL_TRANSPORT_FACTORY,
+  MailTransport,
+  MailTransportFactory,
+} from './mail.tokens';
 
 @Injectable()
 export class MailService {
-  private transporter;
+  private readonly logger = new Logger(MailService.name);
+  private readonly transporter: MailTransport | null;
+  private readonly sender: string | null;
 
-  constructor(private readonly configService: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      service: this.configService.get<string>('SERVICE_MAIL'),
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional()
+    @Inject(MAIL_TRANSPORT_FACTORY)
+    transportFactory?: MailTransportFactory,
+  ) {
+    const mailEnabled =
+      this.configService.get<boolean>('MAIL_ENABLED') ?? false;
+
+    if (!mailEnabled) {
+      this.transporter = null;
+      this.sender = null;
+      return;
+    }
+
+    const createTransport: MailTransportFactory =
+      transportFactory ?? ((options) => nodemailer.createTransport(options));
+
+    this.sender = this.configService.getOrThrow<string>('EMAIL_USER');
+    this.transporter = createTransport({
+      service: this.configService.getOrThrow<string>('SERVICE_MAIL'),
       auth: {
-        user: this.configService.get<string>('EMAIL_USER'),
-        pass: this.configService.get<string>('EMAIL_PASSWORD'),
+        user: this.sender,
+        pass: this.configService.getOrThrow<string>('EMAIL_PASSWORD'),
       },
-      port: parseInt(this.configService.get<string>('SERVICE_MAIL_PORT'), 10),
+      port: this.configService.getOrThrow<number>('SERVICE_MAIL_PORT'),
     });
   }
 
-  async sendMail(to: string, subject: string, text: string) {
-    const mailOptions = {
-      from: this.configService.get<string>('EMAIL_USER'),
-      to,
-      subject,
-      text,
-    };
+  async sendMail(to: string, subject: string, text: string): Promise<void> {
+    if (!this.transporter || !this.sender) {
+      throw new ServiceUnavailableException('Mail transport is disabled');
+    }
 
     try {
-      await this.transporter.sendMail(mailOptions);
-      console.log('Correo enviado correctamente');
-    } catch (error) {
-      console.error('Error al enviar el correo:', error);
-      throw new Error('Error al enviar el correo');
+      await this.transporter.sendMail({
+        from: this.sender,
+        to,
+        subject,
+        text,
+      });
+      this.logger.log('Mail sent successfully');
+    } catch {
+      this.logger.error('Mail transport failed');
+      throw new ServiceUnavailableException('Mail transport failed');
     }
   }
 }

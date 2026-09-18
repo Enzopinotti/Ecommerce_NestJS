@@ -1,0 +1,38 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": "test/integration/.*[.]integration-spec[.]ts$",
+  "setupFiles": [
+    "<rootDir>/test/setup-test-env.ts"
+  ],
+  "transform": {
+    "^.+[.]ts$": "ts-jest",
+    "^.+[.]js$": [
+      "babel-jest",
+      {
+        "presets": [
+          [
+            "@babel/preset-env",
+            {
+              "targets": {
+                "node": "current"
+              },
+              "modules": "commonjs"
+            }
+          ]
+        ],
+        "plugins": [
+          "babel-plugin-transform-import-meta"
+        ]
+      }
+    ]
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!@nestjs/)"
+  ]
+}

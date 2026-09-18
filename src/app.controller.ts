@@ -1,131 +1,140 @@
-import { Controller, Get, HttpException, HttpStatus, Logger, Param, Query, Redirect, Render, Req, Res, UseGuards } from '@nestjs/common';
-import { AppService } from './app.service';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Redirect,
+  Render,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { UsersService } from './users/users.service';
-import { ProductsService } from './products/products.service';
-import { Product } from './products/schema/products.schema';
+import { Request, Response } from 'express';
+import { AuthUserView } from './auth/auth.types';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import {
+  SESSION_COOKIE_NAME,
+  sessionClearCookieOptions,
+} from './auth/session-cookie';
 import { CategoriesService } from './categories/categories.service';
-import { Request } from 'express';
-import { JwtAuthGuard } from './users/auth/jwt-auth.guard';
+import { ProductQueryDto } from './products/dto/product-query.dto';
+import { ProductsService } from './products/products.service';
+
+type AuthenticatedRequest = Request & { user: AuthUserView };
 
 @Controller()
 export class AppController {
-  private readonly logger = new Logger(AppController.name);
-
   constructor(
-    private readonly appService: AppService,
-    private readonly userService: UsersService,
     private readonly productService: ProductsService,
-    private readonly categoryService: CategoriesService, 
-    private config: ConfigService, 
-    
+    private readonly categoryService: CategoriesService,
+    private readonly config: ConfigService,
   ) {}
-  
+
   @Get()
-  @Redirect('/login') // Redirecciona "/" a "/login"
+  @Redirect('/login')
   redirectToLogin() {
     return {};
   }
-  
+
   @Get('login')
   @Render('login')
   getLoginView() {
-    const title = 'Login'; 
-    const style = 'login.css'; 
-    return { title, style }; 
+    return { title: 'Login', style: 'login.css' };
   }
 
   @Get('register')
-  @Render('register') // Renderiza la vista register.handlebars en views/
+  @Render('register')
   getRegisterView() {
-    const title = 'Register'; 
-    const style = 'register.css'; 
-    return { title, style }; 
+    return { title: 'Register', style: 'register.css' };
   }
 
-  @Get('logout')
-  logoutUser(@Res() res: any) {
-    try {
-      // Limpiar la cookie de token de acceso
-      res.clearCookie('access_token');
-      // Redirigir al usuario a la página de inicio de sesión
-      res.redirect('/login');
-    } catch (error) {
-      // Manejar errores en caso de que ocurran al limpiar la cookie o redirigir
-      console.error('Error al cerrar sesión:', error);
-      // Enviar una respuesta de error al cliente
-      res.status(500).send('Error al cerrar sesión');
-    }
+  @Post('logout')
+  logoutUser(@Res() response: Response) {
+    response.clearCookie(
+      SESSION_COOKIE_NAME,
+      sessionClearCookieOptions(this.isProduction()),
+    );
+    response.redirect('/login');
   }
 
   @Get('profile')
+  @UseGuards(JwtAuthGuard)
   @Render('profile')
-  getProfileView(@Req() req: any) {
-    const user = req.user;
-    console.log('user en controller: ', user)
-    const title = 'Profile';
-    const style = 'profile.css';
-    return { title, style };
+  getProfileView(@Req() request: AuthenticatedRequest) {
+    return {
+      title: 'Profile',
+      style: 'profile.css',
+      user: request.user,
+    };
   }
-  
+
   @Get('recoveryPass')
   @Render('recoveryPass')
   getRecoveryPassView() {
-    const title = 'Recovery Password';
-    const style = 'recoveryPass.css';
-    return { title, style };
+    return { title: 'Recovery Password', style: 'recoveryPass.css' };
   }
 
   @Get('resetPassword/:tokenId')
   @Render('resetPass')
-  async getResetPassView(@Param('tokenId') id: string, @Res() res: Response) {
-    const user = await this.userService.findByToken(id);
-    if (!user) {
-      // Si no se encuentra ningún usuario con el token, redirigir al login
-      this.logger.debug('No se encontró ningún usuario con el token proporcionado.');
-    }
-    const title = 'Reset Password';
-    const style = 'resetPass.css';
-    return { title, style, tokenId: id };
+  getResetPassView(@Param('tokenId') tokenId: string) {
+    return {
+      title: 'Reset Password',
+      style: 'resetPass.css',
+      tokenId,
+    };
   }
 
   @Get('products')
   @Render('products')
-  async getProductsView(@Query() options: { page: number; limit: number; sort: string; query: string }): Promise<any> {
-    try {
-      options.page = options.page || 1;
-      options.limit = options.limit || 10;
-      options.sort = options.sort || 'name';
-      options.query = options.query || '';
-      const categories = await this.categoryService.findAll();
-      const categoryMap = {};
-      categories.forEach(category => {
-        categoryMap[category._id.toString()] = category.nameCategory; // Mapea el ID de la categoría al nombre
-      });
+  async getProductsView(
+    @Query() options: ProductQueryDto,
+  ): Promise<Record<string, unknown>> {
+    const categories = await this.categoryService.findAll();
+    const categoryMap: Record<string, string> = {};
+    categories.forEach((category) => {
+      categoryMap[category._id.toString()] = String(category.nameCategory);
+    });
 
-      const { products, totalPages, hasNextPage, hasPrevPage, totalDocs} = await this.productService.findAllView(options);
-      return {
-        products,
-        totalPages,
-        currentPage: options.page,
-        hasNextPage,
-        hasPrevPage,
-        prevLink: hasPrevPage ? `/products?page=${options.page - 1}&limit=${options.limit}` : null,
-        nextLink: hasNextPage ? `/products?page=${options.page + 1}&limit=${options.limit}` : null,
-        totalDocs,
-        categoryMap,
-        style: 'products.css',
-        title: 'Productos',
-        user: null 
-      };
-    } catch (error) {
-      console.error("Error al obtener la vista de productos:", error);
-      throw error; // Puedes manejar el error de otra manera si lo deseas
+    const { products, totalPages, hasNextPage, hasPrevPage, totalDocs } =
+      await this.productService.findAllView(options);
+
+    return {
+      products,
+      totalPages,
+      currentPage: options.page,
+      hasNextPage,
+      hasPrevPage,
+      prevLink: hasPrevPage
+        ? this.buildProductsPageLink(options.page - 1, options)
+        : null,
+      nextLink: hasNextPage
+        ? this.buildProductsPageLink(options.page + 1, options)
+        : null,
+      totalDocs,
+      categoryMap,
+      style: 'products.css',
+      title: 'Productos',
+    };
+  }
+
+  private buildProductsPageLink(
+    page: number,
+    options: ProductQueryDto,
+  ): string {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(options.limit),
+      sort: options.sort,
+    });
+    if (options.query) {
+      params.set('query', options.query);
     }
+    return `/products?${params.toString()}`;
+  }
+
+  private isProduction(): boolean {
+    return this.config.get<string>('NODE_ENV') === 'production';
   }
 }
-
-
-//Bueno ahora necesito que me ayudes a modificar mi handlebars 'products' para poder enviar desde el front (o no) estos querys que configuramos 
-
-
