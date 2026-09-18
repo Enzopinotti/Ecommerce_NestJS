@@ -126,7 +126,9 @@ describe('AuthService', () => {
 
   it('does not rewrite infrastructure failures as authentication failures', async () => {
     const databaseFailure = new Error('database unavailable');
-    usersService.findByEmailForAuthentication.mockRejectedValue(databaseFailure);
+    usersService.findByEmailForAuthentication.mockRejectedValue(
+      databaseFailure,
+    );
 
     await expect(
       service.login({

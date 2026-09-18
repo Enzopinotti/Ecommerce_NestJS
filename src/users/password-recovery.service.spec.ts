@@ -1,4 +1,7 @@
-import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'node:crypto';
 import { MailService } from '../mail/mail.service';
@@ -46,7 +49,8 @@ describe('PasswordRecoveryService', () => {
 
     await service.requestReset('known@example.test');
 
-    const [, digest, expiresAt] = usersService.setPasswordResetDigest.mock.calls[0];
+    const [, digest, expiresAt] =
+      usersService.setPasswordResetDigest.mock.calls[0];
     expect(digest).toMatch(/^[a-f0-9]{64}$/);
     expect(expiresAt).toBeInstanceOf(Date);
 
@@ -64,7 +68,9 @@ describe('PasswordRecoveryService', () => {
   it('does not reveal a missing account through mail or persistence side effects', async () => {
     usersService.findByEmail.mockResolvedValue(null);
 
-    await expect(service.requestReset('missing@example.test')).resolves.toBeUndefined();
+    await expect(
+      service.requestReset('missing@example.test'),
+    ).resolves.toBeUndefined();
     expect(usersService.setPasswordResetDigest).not.toHaveBeenCalled();
     expect(mailService.sendMail).not.toHaveBeenCalled();
   });
@@ -79,7 +85,9 @@ describe('PasswordRecoveryService', () => {
       new ServiceUnavailableException('provider secret leaked here'),
     );
 
-    await expect(service.requestReset('known@example.test')).resolves.toBeUndefined();
+    await expect(
+      service.requestReset('known@example.test'),
+    ).resolves.toBeUndefined();
     expect(usersService.clearPasswordResetDigest).toHaveBeenCalledTimes(1);
   });
 

@@ -227,10 +227,9 @@ describe('Current product HTTP contracts (e2e)', () => {
 
     expect(known.body).toEqual(unknown.body);
 
-    const persisted = await connection.collection('users').findOne(
-      { email },
-      { projection: { resetPasswordTokenDigest: 1 } },
-    );
+    const persisted = await connection
+      .collection('users')
+      .findOne({ email }, { projection: { resetPasswordTokenDigest: 1 } });
     expect(persisted).not.toHaveProperty('resetPasswordTokenDigest');
 
     await request(app.getHttpServer())
