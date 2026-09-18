@@ -115,6 +115,7 @@ npm run format:write
 npm run lint
 npm run lint:fix
 npm run test:unit
+npm run test:integration
 npm run test:e2e
 npm run quality
 npm run test:b2:runtime
@@ -142,12 +143,13 @@ Modernization evidence:
 - [`docs/modernization-2026/b5-authority-matrix.md`](docs/modernization-2026/b5-authority-matrix.md)
 - [`docs/modernization-2026/b6-typescript-dependencies.md`](docs/modernization-2026/b6-typescript-dependencies.md)
 - [`docs/modernization-2026/b7-test-ci.md`](docs/modernization-2026/b7-test-ci.md)
+- [`docs/modernization-2026/b8-review-close.md`](docs/modernization-2026/b8-review-close.md)
 
 ## Portfolio status
 
 This repository is preserved as a **framework-specific backend learning artifact**. It is intentionally not being expanded into a new production ecommerce system just to make the repository look newer.
 
-B0–B7 established a reproducible Node 24 runtime, blocking static/security gates, production artifact contract, coherent authentication, secure password recovery, a truthful read-oriented domain surface, TypeScript/dependency modernization, and permanent unit/integration/E2E CI. The next executable block is **B8 — documentation, review and verifiable merge closure**.
+The 2026 modernization lane establishes a reproducible Node 24 runtime, blocking static/security gates, a production artifact contract, coherent authentication, secure password recovery, a truthful read-oriented domain surface, TypeScript/dependency modernization, and permanent unit/integration/E2E CI. B8 performs the final scope/review/merge verification; authoritative merge evidence is recorded in issue #2.
 
 Portfolio coordination: [`Enzopinotti/Enzopinotti#19`](https://github.com/Enzopinotti/Enzopinotti/issues/19)
 
