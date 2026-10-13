@@ -74,7 +74,7 @@ jobs:
           cat quality-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload static quality evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: static-quality-${{ env.CANDIDATE_SHA }}
           retention-days: 30
@@ -149,7 +149,7 @@ jobs:
           cat runtime-tests-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload runtime and test evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: runtime-tests-${{ env.CANDIDATE_SHA }}
           retention-days: 30
